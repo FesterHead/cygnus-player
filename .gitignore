@@ -1,0 +1,29 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/markdown.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/AndroidProjectSystem.xml
+/.idea/appInsightsSettings.xml
+/.kotlin/sessions
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Gemini / Google AI planning artifacts
+.artifacts/
+
+# Keystore files
+*.keystore
+*.jks
+keystore.properties
+keystore_base64.txt

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Suppress warnings about newer library versions as we are intentionally pinning
+         to API 36 compatible versions. -->
+    <issue id="NewerVersionAvailable" severity="ignore" />
+
+    <!-- Suppress warnings about targetSdk being newer than the stable release -->
+    <issue id="TargetSdkSource" severity="ignore" />
+    <issue id="ForegroundServiceType" severity="ignore" />
+    <issue id="ForegroundServicePermission" severity="ignore" />
+    <issue id="FgsType" severity="ignore" />
+    <issue id="MinSdkType" severity="ignore" />
+    <issue id="ForegroundServicesPolicy" severity="ignore" />
+    <issue id="OldTargetApi" severity="ignore" />
+
+    <!-- Suppress warnings about using older versions of Kotlin/KSP that match our project -->
+    <issue id="GradleDependency" severity="ignore" />
+
+    <!-- Disable detectors causing crashes with Kotlin 2.1.10 and AGP 8.7.3 mismatch -->
+    <issue id="FrequentlyChangingValue" severity="ignore" />
+    <issue id="NullSafeMutableLiveData" severity="ignore" />
+</lint>
