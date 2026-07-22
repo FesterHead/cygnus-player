@@ -166,7 +166,7 @@ adb shell am start -n com.festerhead.cygnusplayer/.MainActivity
 Cygnus Player utilizes GitHub Actions for continuous integration and delivery:
 
 - **Debug Builds (`develop`):** Pushing code to the `develop` branch automatically triggers a Debug build. You can also manually trigger these builds from the Actions tab using `workflow_dispatch`. The resulting APK is available to download as a temporary Artifact.
-- **Release Builds (`main`):** Opening a Pull Request against the `main` branch automatically triggers the `Android Release Build` workflow, which securely signs and builds a Production-ready APK.
+- **Release Builds (`main`):** Opening a Pull Request against the `main` branch automatically triggers the `Android Release Build` workflow, which securely signs and builds a Production-ready APK. You can also manually trigger this workflow via `workflow_dispatch` on the `develop` branch for pre-release testing!
 
 #### Repository Secrets Configuration
 
