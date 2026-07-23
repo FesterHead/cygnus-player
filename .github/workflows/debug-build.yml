@@ -2,8 +2,6 @@ name: Android Develop Debug Build
 
 on:
   workflow_dispatch: # Allows you to manually trigger this build from the Actions tab "as needed"
-  push:
-    branches: [ "develop" ] # Automatically builds a debug APK whenever you push to develop
 
 jobs:
   build:
