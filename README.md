@@ -166,7 +166,17 @@ adb shell am start -n com.festerhead.cygnusplayer/.MainActivity
 Cygnus Player utilizes GitHub Actions for continuous integration and delivery:
 
 - **Debug Builds (`develop`):** You can manually trigger a Debug build from the Actions tab using `workflow_dispatch` on the `develop` branch (or any other branch). The resulting APK is available to download as a temporary Artifact.
-- **Release Builds (`main`):** Opening a Pull Request against the `main` branch automatically triggers the `Android Release Build` workflow, which securely signs and builds a Production-ready APK. You can also manually trigger this workflow via `workflow_dispatch` on the `develop` branch for pre-release testing!
+- **Release Verification (PRs to `main`):** Opening a Pull Request against the `main` branch automatically triggers the `Android Release Build` workflow. It securely signs and builds a Production-ready APK, attached as a temporary Artifact for verification. You can also manually trigger this workflow via `workflow_dispatch` on the `develop` branch for pre-release testing.
+- **Automated GitHub Releases (Pushes to `main`):** When a Pull Request is merged into `main`, the workflow automatically creates a public GitHub Release and attaches the signed Production APK to it. The release tag (e.g., `v1.0.0`) is automatically determined by reading the `version.properties` file.
+
+#### Versioning
+
+The single source of truth for the app's version is the `version.properties` file in the project root. Before merging to `main` to trigger a release, ensure you update this file:
+```properties
+VERSION_NAME=1.0.0
+VERSION_CODE=1
+```
+Gradle will automatically inject these values into the APK, and the GitHub Action will parse them to name your automated Release!
 
 #### Repository Secrets Configuration
 

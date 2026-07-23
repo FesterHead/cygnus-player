@@ -3,6 +3,8 @@ name: Android Release Build
 on:
   pull_request:
     branches: ["main"]
+  push:
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -46,3 +48,11 @@ jobs:
           name: cygnus-player-release
           path: app/build/outputs/apk/release/app-release.apk
           retention-days: 7
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION_NAME=$(grep VERSION_NAME version.properties | cut -d'=' -f2)
+          gh release create "v$VERSION_NAME" app/build/outputs/apk/release/app-release.apk --title "Release v$VERSION_NAME" --generate-notes

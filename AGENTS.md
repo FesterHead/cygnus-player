@@ -9,6 +9,7 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 - **No Automated Git Operations:** The AI Agent is strictly prohibited from executing `git commit` or `git push`.
 - **Incremental Changes:** Work will be broken down into small, logical increments. The Agent will pause after each increment to allow the user to review, commit, and push via the Android Studio UI.
 - **Branching Strategy:** All feature development and AI-assisted coding must target the `develop` branch. Pull requests from `develop` to `main` are used to trigger signed Release builds via GitHub Actions.
+- **Versioning Strategy:** The `version.properties` file in the project root is the absolute single source of truth for the app's version. Before any code is merged into `main` for a release, the AI Agent must verify and update `VERSION_NAME` and `VERSION_CODE` in this file. The GitHub Action will use this to automatically publish a public Release.
 - **Static Analysis:** The Agent must run `analyze_file` (IDE Inspections) on every modified file to identify and resolve unused code, deprecations, and style issues before task completion.
 - **Documentation Standards:** Every new class, interface, method, and function must include proper KDoc documentation. KDoc must clearly explain the purpose, parameters (`@param`), and return values (`@return`). For Room entities, explain the role of each column.
 - **AI Commit Messages:** The user will utilize the Android Studio AI-generated commit message feature.
@@ -47,7 +48,7 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
         - **Main App:** Use `Modifier.basicMarquee()` for song titles and album names to ensure long strings are fully readable.
         - **Widget:** Use clean truncation (Ellipsis) for text to maintain a static, glanceable layout.
 
-- **Changelog Maintenance:** `CHANGELOG.md` is currently frozen at "Initial version" and will not be updated with incremental changes. Regular maintenance according to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) will resume upon the `1.0.0` release and migration to GitHub for version control.
+- **Changelog Maintenance:** Maintain `CHANGELOG.md` according to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Ensure the version exactly matches `VERSION_NAME` in `version.properties`. Mint the numbered release heading before opening a pull request to `main`. When minting a new release, you MUST explicitly ask the user whether to increment the MAJOR, MINOR, or PATCH version number before finalizing the file changes.
 
 - **README Maintenance:** Ensure the root `README.md` is updated to reflect current features, tech stack changes, and roadmap status.
 

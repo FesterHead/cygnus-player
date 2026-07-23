@@ -22,8 +22,14 @@ android {
         applicationId = "com.festerhead.cygnusplayer"
         minSdk = 35
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        val versionPropsFile = rootProject.file("version.properties")
+        val versionProps = Properties()
+        if (versionPropsFile.exists()) {
+            versionProps.load(FileInputStream(versionPropsFile))
+        }
+        
+        versionCode = versionProps.getProperty("VERSION_CODE", "1").toInt()
+        versionName = versionProps.getProperty("VERSION_NAME", "1.0.0")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
