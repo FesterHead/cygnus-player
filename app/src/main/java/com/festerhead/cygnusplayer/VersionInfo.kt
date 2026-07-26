@@ -7,6 +7,6 @@ package com.festerhead.cygnusplayer
  * build stability across environments where the Android toolchain may be inconsistent.
  */
 object VersionInfo {
-    const val VERSION_NAME = "1.0.1"
-    const val VERSION_CODE = 2
+    const val VERSION_NAME = "1.0.2"
+    const val VERSION_CODE = 3
 }

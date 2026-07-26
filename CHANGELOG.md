@@ -14,6 +14,12 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-07-25
+
+### Added
+- Official `PRIVACY.md` policy documenting on-device storage access and zero data collection.
+- Project Status & Disclaimer section in `README.md`.
+
 ## [1.0.1] - 2026-07-25
 
 ### Added

@@ -4,6 +4,10 @@ Cygnus Player is a minimalist, high-performance local audio player for Android, 
 
 Designed for collectors with large libraries, Cygnus Player prioritizes a low memory footprint ($O(1)$ relative to queue size) and absolute sequence integrity.
 
+## ⚠️ Project Status & Disclaimer
+
+Cygnus Player is a personal, open-source hobby project provided strictly **as-is** without official support, bug tracking, or feature updates. Public Issues and Pull Requests are disabled, and contributions are not being accepted. You are welcome to fork the repository and adapt the code to suit your own needs under the terms of the license.
+
 ## 🌌 Why "Cygnus Player"?
 
 The name is a direct tribute to the legendary progressive rock band **Rush** and their epic multi-album masterpiece, _Cygnus X-1_.
@@ -31,18 +35,21 @@ Modern commercial streaming apps and feature-bloated players treat music like a 
 ## 📱 Application Screenshots
 
 ### Initial Setup & Storage Access
-| App Launch | Select Music Root | SAF Root Permission | Media Permission |
-| :-: | :-: | :-: | :-: |
+
+|                                         App Launch                                          |                                            Select Music Root                                            |                                           SAF Root Permission                                            |                                         Media Permission                                         |
+| :-----------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------: |
 | <img src="docs/screenshots/01%20-%20app%20installed.png" width="200" alt="App Installed" /> | <img src="docs/screenshots/02%20-%20select%20root%20folder.png" width="200" alt="Select Root Folder" /> | <img src="docs/screenshots/03%20-%20root%20folder%20access.png" width="200" alt="Root Access Granted" /> | <img src="docs/screenshots/04%20-%20app%20permissions.png" width="200" alt="Media Permission" /> |
 
 ### Playlist Management & Minting
-| Empty Playlist History | Mint Shuffle Mode | Active Playlist History |
-| :-: | :-: | :-: |
+
+|                                          Empty Playlist History                                           |                                             Mint Shuffle Mode                                             |                                            Active Playlist History                                             |
+| :-------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------: |
 | <img src="docs/screenshots/05%20-%20no%20playlists%20loaded.png" width="220" alt="No Playlists Loaded" /> | <img src="docs/screenshots/06%20-%20select%20shuffle%20mode.png" width="220" alt="Select Shuffle Mode" /> | <img src="docs/screenshots/07%20-%20one%20of%20each%20mode%20loaded.png" width="220" alt="Loaded Playlists" /> |
 
 ### Playback, Widget & Configuration
-| Minimalist Now Playing | Home Screen Widget | Settings & Diagnostics |
-| :-: | :-: | :-: |
+
+|                                 Minimalist Now Playing                                  |                                Home Screen Widget                                |                                  Settings & Diagnostics                                   |
+| :-------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------: |
 | <img src="docs/screenshots/08%20-%20now%20playing.png" width="220" alt="Now Playing" /> | <img src="docs/screenshots/09%20-%20widget.png" width="220" alt="Home Widget" /> | <img src="docs/screenshots/10%20-%20configuration.png" width="220" alt="Configuration" /> |
 
 ## 📁 Storage & Scoped Storage Compliance
@@ -135,7 +142,9 @@ Cygnus Player utilizes a custom-designed **Adaptive Icon** that reflects the cos
 To maintain "Zero-Manual-Discovery" of bugs while bypassing framework-level environmental issues (like the Android 17.1 binder deadlock), use the following PowerShell aliases.
 
 ### 1. Alias Setup
+
 Add these to your PowerShell `$PROFILE` for maximum productivity:
+
 ```powershell
 function ctest {
     adb shell input keyevent 224; adb shell wm dismiss-keyguard
@@ -154,7 +163,9 @@ function cdebug {
 ```
 
 ### 2. Manual Commands
+
 If you prefer the standard Gradle tasks, ensure the emulator is **awake and unlocked** first:
+
 ```powershell
 # Wake up and unlock
 adb shell input keyevent 224; adb shell wm dismiss-keyguard
@@ -189,22 +200,26 @@ Cygnus Player utilizes GitHub Actions for continuous integration and delivery:
 #### Versioning
 
 The app's version is maintained in two locations for build stability:
+
 1.  **`version.properties`**: The primary source of truth used by Gradle and CI/CD.
 2.  **`VersionInfo.kt`**: A static object in the source code used by the UI to avoid `BuildConfig` race conditions in experimental environments.
 
 Before merging to `main` to trigger a release, ensure both files are updated:
+
 ```properties
 # version.properties
-VERSION_NAME=1.0.1
-VERSION_CODE=2
+VERSION_NAME=1.0.2
+VERSION_CODE=3
 ```
+
 ```kotlin
 // VersionInfo.kt
 object VersionInfo {
-    const val VERSION_NAME = "1.0.1"
-    const val VERSION_CODE = 2
+    const val VERSION_NAME = "1.0.2"
+    const val VERSION_CODE = 3
 }
 ```
+
 Gradle will automatically inject these values into the APK, and the GitHub Action will parse them to name your automated Release!
 
 #### Repository Secrets Configuration
