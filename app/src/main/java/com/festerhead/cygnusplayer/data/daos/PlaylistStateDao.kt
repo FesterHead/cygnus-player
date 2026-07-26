@@ -35,4 +35,10 @@ interface PlaylistStateDao {
      */
     @Query("DELETE FROM playlist_states WHERE m3u_path = :path")
     suspend fun deleteState(path: String)
+
+    /**
+     * Returns the total number of saved playlists in history.
+     */
+    @Query("SELECT COUNT(*) FROM playlist_states")
+    suspend fun getPlaylistCount(): Int
 }

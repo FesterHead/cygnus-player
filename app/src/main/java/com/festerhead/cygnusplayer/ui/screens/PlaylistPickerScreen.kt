@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,11 +37,17 @@ import com.festerhead.cygnusplayer.ui.theme.MonokaiGreen
 @Composable
 fun PlaylistPickerScreen(
     viewModel: PlaylistPickerViewModel,
-    onPlaylistSelected: (String) -> Unit
+    onPlaylistSelected: (String) -> Unit,
+    onSettingsClicked: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Permission Launcher moved here to prevent startup deadlock on Android 17.1
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { /* Permission results are handled by system; we check again on button click if needed */ }
 
     // Launcher for picking the Music Root folder
     val folderLauncher = rememberLauncherForActivityResult(
@@ -77,8 +84,7 @@ fun PlaylistPickerScreen(
         MintingDialog(
             fileName = cleanPendingName,
             onModeSelected = { viewModel.mintPlaylist(it) },
-            onDismiss = { viewModel.cancelMinting() }
-        )
+        ) { viewModel.cancelMinting() }
     }
 
     Scaffold(
@@ -109,20 +115,36 @@ fun PlaylistPickerScreen(
                 .padding(innerPadding)
                 .fillMaxSize(),
         ) {
-            Text(
-                text = "Cygnus Player",
+            Row(
                 modifier = Modifier
+                    .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 8.dp),
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 40.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 4.sp,
-            )
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Cygnus Player",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 40.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 4.sp,
+                )
+                IconButton(onClick = onSettingsClicked) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             // Library Root Warning/Setup
             if (uiState.libraryRootUri == null) {
-                LibraryRootPrompt { folderLauncher.launch(null) }
+                LibraryRootPrompt {
+                    permissionLauncher.launch(android.Manifest.permission.READ_MEDIA_AUDIO)
+                    folderLauncher.launch(null)
+                }
             }
 
             Text(
@@ -287,18 +309,15 @@ fun MintingDialog(
                 MintingButton(
                     label = "SEQUENTIAL",
                     color = MaterialTheme.colorScheme.primary,
-                    onClick = { onModeSelected(ShuffleMode.SEQUENTIAL) },
-                )
+                ) { onModeSelected(ShuffleMode.SEQUENTIAL) }
                 MintingButton(
                     label = "ALBUM SHUFFLE",
                     color = MaterialTheme.colorScheme.secondary,
-                    onClick = { onModeSelected(ShuffleMode.RANDOM_FOLDER_SEQUENTIAL) },
-                )
+                ) { onModeSelected(ShuffleMode.RANDOM_FOLDER_SEQUENTIAL) }
                 MintingButton(
                     label = "CHAOS (RANDOM)",
                     color = MaterialTheme.colorScheme.tertiary,
-                    onClick = { onModeSelected(ShuffleMode.TRACK_RANDOM) },
-                )
+                ) { onModeSelected(ShuffleMode.TRACK_RANDOM) }
             }
         },
         confirmButton = {

@@ -1,6 +1,5 @@
 package com.festerhead.cygnusplayer.ui.screens
 
-import android.app.Application
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,8 +41,8 @@ class PlaylistNavigationTest {
         )
         
         val pickerViewModel = PlaylistPickerViewModel(
-            ApplicationProvider.getApplicationContext<Application>(),
-            playlistStateDao
+            ApplicationProvider.getApplicationContext(),
+            playlistStateDao,
         )
         
         // We use a state to control navigation in the test
@@ -53,9 +52,14 @@ class PlaylistNavigationTest {
         composeTestRule.setContent {
             CygnusPlayerTheme {
                 if (currentScreen == "PICKER") {
-                    PlaylistPickerScreen(viewModel = pickerViewModel) { path ->
-                        selectedPlaylistPath = path
-                        currentScreen = "NOW_PLAYING"
+                    PlaylistPickerScreen(
+                        viewModel = pickerViewModel,
+                        onPlaylistSelected = { path ->
+                            selectedPlaylistPath = path
+                            currentScreen = "NOW_PLAYING"
+                        }
+                    ) {
+                        currentScreen = "NOW_PLAYING" // Simplified for lambda
                     }
                 } else {
                     // Inject a NowPlayingViewModel that reflects the selected playlist
@@ -74,10 +78,16 @@ class PlaylistNavigationTest {
         }
 
         // 1. Select the playlist
+        composeTestRule.waitUntil(20000) {
+            composeTestRule.onAllNodes(androidx.compose.ui.test.hasText("Rush.m3u8")).fetchSemanticsNodes().isNotEmpty()
+        }
         composeTestRule.onNodeWithText("Rush.m3u8").performClick()
         composeTestRule.waitForIdle()
 
         // 2. Verify navigation and playlist name display
+        composeTestRule.waitUntil(20000) {
+            composeTestRule.onAllNodes(androidx.compose.ui.test.hasText("Rush.m3u8")).fetchSemanticsNodes().size == 1
+        }
         composeTestRule.onNodeWithText("Rush.m3u8").assertIsDisplayed()
         
         // 3. Verify that the correct shuffle mode is initialized and rendered on the screen

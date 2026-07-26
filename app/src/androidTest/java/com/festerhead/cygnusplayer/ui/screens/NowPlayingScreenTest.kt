@@ -28,6 +28,10 @@ class NowPlayingScreenTest {
             }
         }
 
+        composeTestRule.waitUntil(20000) {
+            composeTestRule.onAllNodes(androidx.compose.ui.test.hasText("No track playing")).fetchSemanticsNodes().isNotEmpty()
+        }
+
         composeTestRule.onNodeWithText("No track playing").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Back to Playlists").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Play").assertIsDisplayed()

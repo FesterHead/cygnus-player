@@ -25,7 +25,25 @@ Modern commercial streaming apps and feature-bloated players treat music like a 
 - **Minted Identity**: Playlists are assigned a shuffle strategy at the moment of creation, ensuring deterministic behavior for specialized collections (e.g., a dedicated "Chaos" vs. "Album" playlist).
 - **No-Skip Philosophy**: Designed for the "full experience" listener—no forward/back controls. Playback is an immutable journey once started.
 - **Dynamic ReplayGain**: "Smart" real-time volume normalization. Automatically applies `ALBUM_GAIN` for sequential flows and `TRACK_GAIN` for randomized tracks.
-- **Modern Android Core**: Built for Android 17 (API 37) using Jetpack Compose, Media3 (ExoPlayer), and Jetpack Glance.
+- **Persistent State Across Updates**: Per-playlist state (last played `sequence_id`, exact track position, active `ShuffleMode`, and exact shuffled order mapping) is stored in the Room database, ensuring all playback positions and custom shuffle orders are retained across application restarts and updates.
+- **Modern Android Core**: Built for Android 16 (API 36) using Jetpack Compose, Media3 (ExoPlayer), and Jetpack Glance.
+
+## 📱 Application Screenshots
+
+### Initial Setup & Storage Access
+| App Launch | Select Music Root | SAF Root Permission | Media Permission |
+| :-: | :-: | :-: | :-: |
+| <img src="docs/screenshots/01%20-%20app%20installed.png" width="200" alt="App Installed" /> | <img src="docs/screenshots/02%20-%20select%20root%20folder.png" width="200" alt="Select Root Folder" /> | <img src="docs/screenshots/03%20-%20root%20folder%20access.png" width="200" alt="Root Access Granted" /> | <img src="docs/screenshots/04%20-%20app%20permissions.png" width="200" alt="Media Permission" /> |
+
+### Playlist Management & Minting
+| Empty Playlist History | Mint Shuffle Mode | Active Playlist History |
+| :-: | :-: | :-: |
+| <img src="docs/screenshots/05%20-%20no%20playlists%20loaded.png" width="220" alt="No Playlists Loaded" /> | <img src="docs/screenshots/06%20-%20select%20shuffle%20mode.png" width="220" alt="Select Shuffle Mode" /> | <img src="docs/screenshots/07%20-%20one%20of%20each%20mode%20loaded.png" width="220" alt="Loaded Playlists" /> |
+
+### Playback, Widget & Configuration
+| Minimalist Now Playing | Home Screen Widget | Settings & Diagnostics |
+| :-: | :-: | :-: |
+| <img src="docs/screenshots/08%20-%20now%20playing.png" width="220" alt="Now Playing" /> | <img src="docs/screenshots/09%20-%20widget.png" width="220" alt="Home Widget" /> | <img src="docs/screenshots/10%20-%20configuration.png" width="220" alt="Configuration" /> |
 
 ## 📁 Storage & Scoped Storage Compliance
 
@@ -41,7 +59,7 @@ This project is developed and managed using Google AI models. The architecture, 
 
 ## 🛠 Tech Stack
 
-- **Target Platform**: Android 17 (API Level 37)
+- **Target Platform**: Android 16 (API Level 36)
 - **UI Framework**: Jetpack Compose
 - **Playback Engine**: `androidx.media3:media3-exoplayer` & `MediaSessionService`
 - **Database**: `androidx.room` with SQLite indexing on `sequence_id` and `file_path`
@@ -96,7 +114,7 @@ Cygnus Player utilizes a custom-designed **Adaptive Icon** that reflects the cos
   - [x] Folder-Sequential Logic: History-aware directory shuffling (24-folder buffer).
   - [x] ReplayGain Controller: "Smart" gain switching logic (Album vs. Track).
 - [x] **Playback**: Media3 Service integration with ReplayGain and Audio Focus.
-  - [x] `MediaSessionService`: Foreground service with Android 17 security bounds.
+  - [x] `MediaSessionService`: Foreground service with Android 16 security bounds.
   - [x] ExoPlayer Core: Gapless transition and volume normalization.
   - [x] Lazy Queue Controller: Sliding window logic for $O(1)$ memory playback.
   - [x] System Integration: Audio Focus and `BECOMING_NOISY` handling.
@@ -112,45 +130,44 @@ Cygnus Player utilizes a custom-designed **Adaptive Icon** that reflects the cos
   - [x] Position Persistence: Per-playlist millisecond-accurate resumption.
   - [x] Smart Bluetooth: Automated playback resumption upon device reconnection.
 
-## 🧪 Running Tests
+## 🧪 High-Efficiency Workflows
 
-To maintain "Zero-Manual-Discovery" of bugs, Cygnus Player uses a dual-layered testing strategy. For more details, see [TESTING_STRATEGY.md](TESTING_STRATEGY.md).
+To maintain "Zero-Manual-Discovery" of bugs while bypassing framework-level environmental issues (like the Android 17.1 binder deadlock), use the following PowerShell aliases.
 
-### 1. Unit Tests (Logic-First)
-
-Run these for sub-second validation of parsers, mapping logic, and shuffle algorithms on the JVM.
-
+### 1. Alias Setup
+Add these to your PowerShell `$PROFILE` for maximum productivity:
 ```powershell
-./gradlew test
+function ctest {
+    adb shell input keyevent 224; adb shell wm dismiss-keyguard
+    ./gradlew test connectedDebugAndroidTest
+}
+function crun {
+    adb shell input keyevent 224; adb shell wm dismiss-keyguard
+    ./gradlew installRelease
+    adb shell am start -n com.festerhead.cygnusplayer/.MainActivity
+}
+function cdebug {
+    adb shell input keyevent 224; adb shell wm dismiss-keyguard
+    ./gradlew installDebug
+    adb shell am start -n com.festerhead.cygnusplayer/.MainActivity
+}
 ```
 
-### 2. Instrumented Tests (Device Validation)
-
-Run these to verify Room database integrity and physical media extraction on a connected device or emulator.
-
+### 2. Manual Commands
+If you prefer the standard Gradle tasks, ensure the emulator is **awake and unlocked** first:
 ```powershell
-./gradlew connectedDebugAndroidTest
-```
+# Wake up and unlock
+adb shell input keyevent 224; adb shell wm dismiss-keyguard
 
-> [!TIP]
-> You can run both suites sequentially using:
->
-> ```powershell
-> ./gradlew test connectedDebugAndroidTest
-> ```
->
-> If Gradle skips tests due to UP-TO-DATE checks, you can force execution using:
->
-> ```powershell
-> ./gradlew clean test # Deletes build artifacts and runs everything fresh
-> ./gradlew test --rerun-tasks # Runs all test tasks regardless of cache
-> ```
+# Run full suite
+./gradlew test connectedDebugAndroidTest
+```
 
 ## 🚀 Deployment & CI/CD
 
 ### Local Deployment
 
-To build the APK and install the app on your connected device or emulator from the CLI:
+The fastest way to deploy is using the **`crun`** or **`cdebug`** aliases defined above. Alternatively, use the manual commands:
 
 ```powershell
 ./gradlew :app:assembleDebug
@@ -171,10 +188,22 @@ Cygnus Player utilizes GitHub Actions for continuous integration and delivery:
 
 #### Versioning
 
-The single source of truth for the app's version is the `version.properties` file in the project root. Before merging to `main` to trigger a release, ensure you update this file:
+The app's version is maintained in two locations for build stability:
+1.  **`version.properties`**: The primary source of truth used by Gradle and CI/CD.
+2.  **`VersionInfo.kt`**: A static object in the source code used by the UI to avoid `BuildConfig` race conditions in experimental environments.
+
+Before merging to `main` to trigger a release, ensure both files are updated:
 ```properties
-VERSION_NAME=1.0.0
-VERSION_CODE=1
+# version.properties
+VERSION_NAME=1.0.1
+VERSION_CODE=2
+```
+```kotlin
+// VersionInfo.kt
+object VersionInfo {
+    const val VERSION_NAME = "1.0.1"
+    const val VERSION_CODE = 2
+}
 ```
 Gradle will automatically inject these values into the APK, and the GitHub Action will parse them to name your automated Release!
 

@@ -58,4 +58,10 @@ interface TrackDao {
      */
     @Query("DELETE FROM tracks")
     suspend fun deleteAll()
+
+    /**
+     * Returns the total number of unique tracks in the database.
+     */
+    @Query("SELECT COUNT(*) FROM tracks")
+    suspend fun getTrackCount(): Int
 }
