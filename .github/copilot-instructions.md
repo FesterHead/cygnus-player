@@ -15,4 +15,5 @@ You are reviewing code for **Cygnus Player**, a minimalist, high-performance loc
 2. **Forward-Only Shuffling:** When shuffling, any tracks appearing before the current playback anchor in a folder/album context must be permanently discarded from the new queue array.
 3. **Smart ReplayGain:** Verify that volume multipliers dynamically apply `ALBUM_GAIN` for sequential modes and `TRACK_GAIN` for randomized modes.
 4. **Jetpack Compose Only:** Enforce that all UI additions use Jetpack Compose and adhere to the high-contrast Monokai Pro color palette (prioritize Purple, Blue/Cyan, and Orange for color-blind accessibility).
-5. **Foreground Service:** Ensure any modifications to `MediaSessionService` cleanly declare the `FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK` to satisfy Android 14+ bounds.
+5. **Foreground Service:** Ensure any modifications to `MediaSessionService` cleanly declare the `FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK` to satisfy Android 16+ security boundaries.
+6. **Version Consistency:** Verify that `VERSION_NAME` and `VERSION_CODE` updates are perfectly synchronized across all 3 source files: `version.properties`, `com.festerhead.cygnusplayer.VersionInfo.kt`, and `CHANGELOG.md`.

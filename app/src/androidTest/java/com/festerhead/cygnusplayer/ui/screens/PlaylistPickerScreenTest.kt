@@ -1,6 +1,5 @@
 package com.festerhead.cygnusplayer.ui.screens
 
-import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -36,11 +35,11 @@ class PlaylistPickerScreenTest {
         // Mock the initial history load
         coEvery { playlistStateDao.getAllStates() } returns listOf(
             PlaylistStateEntity("/storage/music/Rush.m3u8", 0, ShuffleMode.SEQUENTIAL, 1000L),
-            PlaylistStateEntity("/storage/music/Hemispheres.m3u", 2112, ShuffleMode.TRACK_RANDOM, 2000L)
+            PlaylistStateEntity("/storage/music/Hemispheres.m3u", 2112, ShuffleMode.TRACK_RANDOM, 2000L),
         )
         
         viewModel = PlaylistPickerViewModel(
-            ApplicationProvider.getApplicationContext<Application>(),
+            ApplicationProvider.getApplicationContext(),
             playlistStateDao
         )
     }
@@ -49,8 +48,15 @@ class PlaylistPickerScreenTest {
     fun testBrandingAndGuidance() {
         composeTestRule.setContent {
             CygnusPlayerTheme {
-                PlaylistPickerScreen(viewModel = viewModel, onPlaylistSelected = {})
+                PlaylistPickerScreen(
+                    viewModel = viewModel,
+                    onPlaylistSelected = {}
+                ) {}
             }
+        }
+
+        composeTestRule.waitUntil(20000) {
+            composeTestRule.onAllNodes(androidx.compose.ui.test.hasText("Cygnus Player")).fetchSemanticsNodes().isNotEmpty()
         }
 
         // Verify branding title
@@ -64,8 +70,15 @@ class PlaylistPickerScreenTest {
     fun testHistoryListRendering() {
         composeTestRule.setContent {
             CygnusPlayerTheme {
-                PlaylistPickerScreen(viewModel = viewModel, onPlaylistSelected = {})
+                PlaylistPickerScreen(
+                    viewModel = viewModel,
+                    onPlaylistSelected = {}
+                ) {}
             }
+        }
+
+        composeTestRule.waitUntil(20000) {
+            composeTestRule.onAllNodes(androidx.compose.ui.test.hasText("Rush.m3u8")).fetchSemanticsNodes().isNotEmpty()
         }
 
         // Verify that filenames (from paths) are rendered
@@ -81,7 +94,10 @@ class PlaylistPickerScreenTest {
     fun testErrorSnackbarVisibility() {
         composeTestRule.setContent {
             CygnusPlayerTheme {
-                PlaylistPickerScreen(viewModel = viewModel, onPlaylistSelected = {})
+                PlaylistPickerScreen(
+                    viewModel = viewModel,
+                    onPlaylistSelected = {}
+                ) {}
             }
         }
 
