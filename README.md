@@ -56,9 +56,9 @@ Modern commercial streaming apps and feature-bloated players treat music like a 
 
 Cygnus Player is fully compatible with modern Android **Scoped Storage** requirements. To ensure high-performance relative path resolution for massive libraries, please follow these steps:
 
-1.  **Select Music Root**: On first launch, use the prompt to select your main music directory (e.g., `Internal Storage > Music`). This grants Cygnus persistent, recursive access to your entire library.
-2.  **Relative Path Resolution**: The app uses the **MediaStore API** to map M3U relative paths (e.g., `Rush/2112/01 - 2112.mp3`) to system-registered content URIs. This avoids restricted direct filesystem access and ensures absolute sequence integrity.
-3.  **Permissions**: Ensure the `READ_MEDIA_AUDIO` permission is granted to allow the system to index your music files for the MediaStore.
+1. **Select Music Root**: On first launch, use the prompt to select your main music directory (e.g., `Internal Storage > Music`). This grants Cygnus persistent, recursive access to your entire library.
+2. **Relative Path Resolution**: The app uses the **MediaStore API** to map M3U relative paths (e.g., `Rush/2112/01 - 2112.mp3`) to system-registered content URIs. This avoids restricted direct filesystem access and ensures absolute sequence integrity.
+3. **Permissions**: Ensure the `READ_MEDIA_AUDIO` permission is granted to allow the system to index your music files for the MediaStore.
 
 ## 🤖 AI-Assisted Development
 
@@ -201,8 +201,8 @@ Cygnus Player utilizes GitHub Actions for continuous integration and delivery:
 
 The app's version is maintained in two locations for build stability:
 
-1.  **`version.properties`**: The primary source of truth used by Gradle and CI/CD.
-2.  **`VersionInfo.kt`**: A static object in the source code used by the UI to avoid `BuildConfig` race conditions in experimental environments.
+1. **`version.properties`**: The primary source of truth used by Gradle and CI/CD.
+2. **`VersionInfo.kt`**: A static object in the source code used by the UI to avoid `BuildConfig` race conditions in experimental environments.
 
 Before merging to `main` to trigger a release, ensure both files are updated:
 

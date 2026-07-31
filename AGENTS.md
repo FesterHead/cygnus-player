@@ -7,12 +7,12 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 ## 1. Commit and Push Protocol
 
 - **No Automated Git Operations:** The AI Agent is strictly prohibited from executing `git commit` or `git push`.
-- **Incremental Changes:** Work will be broken down into small, logical increments. The Agent will pause after each increment to allow the user to review, commit, and push via the Android Studio UI.
+- **Incremental Changes:** Work will be broken down into small, logical increments. The Agent will pause after each increment to allow the user to review, commit, and push via their preferred IDE interface (such as Antigravity IDE or Android Studio).
 - **Branching Strategy:** All feature development and AI-assisted coding must target the `develop` branch. Pull requests from `develop` to `main` are used to trigger signed Release builds via GitHub Actions.
 - **Versioning Strategy:** The `version.properties` file in the project root is the source of truth for the app's version. To avoid `BuildConfig` instability in experimental environments, a manual `VersionInfo.kt` object must also be maintained in sync with this file. Before any code is merged into `main` for a release, the AI Agent must verify and update `VERSION_NAME` and `VERSION_CODE` in both `version.properties` and `app/src/main/java/com/festerhead/cygnusplayer/VersionInfo.kt`. The GitHub Action will use `version.properties` to automatically publish a public Release.
 - **Static Analysis:** The Agent must run `analyze_file` (IDE Inspections) on every modified file to identify and resolve unused code, deprecations, and style issues before task completion.
 - **Documentation Standards:** Every new class, interface, method, and function must include proper KDoc documentation. KDoc must clearly explain the purpose, parameters (`@param`), and return values (`@return`). For Room entities, explain the role of each column.
-- **AI Commit Messages:** The user will utilize the Android Studio AI-generated commit message feature.
+- **AI Commit Messages:** The user will utilize their preferred IDE's AI-generated commit message feature (such as Antigravity IDE or Android Studio).
 
 ## 2. Automated Testing Strategy
 
@@ -26,7 +26,7 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 
 - **Package Namespace:** `com.festerhead.cygnusplayer`
 
-- **Target Platform:** Android 17 (API Level 37)
+- **Target Platform:** Android 16 (API Level 36)
 
 - **Language:** Always generate concise Kotlin code using modern language features (coroutines, flows). Do not write Java boilerplate.
 
@@ -41,11 +41,11 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 - **Accessibility & Theme:** Force a Dark Mode UI using the Monokai Pro (Filter Spectrum) color palette. Prioritize high-contrast Purple (#AB9DF2), Blue/Cyan (#78DCE8), and Orange (#FC9867) to ensure readability for red-green color-blind users. Avoid relying on Red/Green for critical state information.
 
 - **UI/UX Philosophy:** The player is strictly minimalist. No "Next" or "Previous" buttons. No "Seek" bar (unless for visual progress only). The UI should focus on the current track and its position in the sequence (e.g., `2112/47533`).
-    - **Controls:** A single, high-contrast Play/Pause toggle that dynamically changes icon based on playback state.
+  - **Controls:** A single, high-contrast Play/Pause toggle that dynamically changes icon based on playback state.
     - **Shuffle Cycling:** Changing the Shuffle Mode on the main player screen is not supported. Playlists are "minted" with an immutable Shuffle Mode upon loading; to change the mode, the playlist must be deleted from history and re-added.
     - **Smart ReplayGain:** ReplayGain is automatic and context-aware. Use `ALBUM_GAIN` for `SEQUENTIAL` and `RANDOM_FOLDER_SEQUENTIAL` modes. Use `TRACK_GAIN` for `TRACK_RANDOM`.
-    - **Text Handling:** 
-        - **Main App:** Use `Modifier.basicMarquee()` for song titles and album names to ensure long strings are fully readable.
+    - **Text Handling:**
+      - **Main App:** Use `Modifier.basicMarquee()` for song titles and album names to ensure long strings are fully readable.
         - **Widget:** Use clean truncation (Ellipsis) for text to maintain a static, glanceable layout.
 
 - **Changelog Maintenance:** Maintain `CHANGELOG.md` according to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Ensure the version exactly matches `VERSION_NAME` in `version.properties`. Mint the numbered release heading before opening a pull request to `main`. When minting a new release, you MUST explicitly ask the user whether to increment the MAJOR, MINOR, or PATCH version number before finalizing the file changes.
@@ -56,9 +56,9 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 
 ## 1. M3U Sequence Mapping (Crucial)
 
-- Traditional media queues struggle with duplicate entries of the same file path. 
+- Traditional media queues struggle with duplicate entries of the same file path.
 
-- To handle repeated tracks cleanly, never map paths directly to the playlist queue. 
+- To handle repeated tracks cleanly, never map paths directly to the playlist queue.
 
 - Always map database records and `MediaItem` tags to a unique, sequential ID (`sequence\_id` or `queue\_id`) so the playlist loop engine treats consecutive duplicate files as separate, unique nodes in the playback sequence.
 
@@ -84,7 +84,7 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 
 ## 4. Scrobbling Integration
 
-- Do not write internal code for Last.fm or external tracking metrics. 
+- Do not write internal code for Last.fm or external tracking metrics.
 
 - Simply ensure the `MediaSession` metadata is updated instantly and accurately on every track transition. External apps like Pano Scrobbler will capture these standard broadcasted system events natively.
 
@@ -97,13 +97,13 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 - **Manageable Playlist History:** The file selection screen must maintain a list of recently opened M3U files for quick switching, ordered by most recently opened. Users must be able to remove individual playlists from this history to keep the selection interface clean.
 
 - **Relative M3U Path Resolution:**
-    - The app must resolve playlist track paths relative to the directory where the `.m3u` / `.m3u8` file is located.
-    - Absolute file paths (e.g., paths containing Windows drive letters or starting with `/`) are explicitly unsupported to ensure library portability.
-    - The parser must ignore `#EXTINF` metadata tags, relying exclusively on the physical audio files as the source of truth for Artist, Album, and Title.
-    - **Initial M3U Parsing:** The initial parser only extracts and mints relative file paths and `sequence_ids` into the database.
-    - **Async Metadata Extraction:** Metadata extraction (reading physical ID3 tags/ReplayGain) is handled asynchronously in the background by a separate worker to ensure UI and playback responsiveness.
-    - **Metadata Fallback:** If tags are missing from the physical file after background processing, the extractor must return `"<not found>"` for those fields to maintain UI consistency.
-    - **Minting Workflow:** When a new playlist is added, the user must explicitly choose its initial `ShuffleMode`. This "Minted Identity" is immutable once selected; to change the mode, the playlist must be deleted from history and re-added. This ensures deterministic behavior for specialized collections.
+  - The app must resolve playlist track paths relative to the directory where the `.m3u` / `.m3u8` file is located.
+  - Absolute file paths (e.g., paths containing Windows drive letters or starting with `/`) are explicitly unsupported to ensure library portability.
+  - The parser must ignore `#EXTINF` metadata tags, relying exclusively on the physical audio files as the source of truth for Artist, Album, and Title.
+  - **Initial M3U Parsing:** The initial parser only extracts and mints relative file paths and `sequence_ids` into the database.
+  - **Async Metadata Extraction:** Metadata extraction (reading physical ID3 tags/ReplayGain) is handled asynchronously in the background by a separate worker to ensure UI and playback responsiveness.
+  - **Metadata Fallback:** If tags are missing from the physical file after background processing, the extractor must return `"<not found>"` for those fields to maintain UI consistency.
+  - **Minting Workflow:** When a new playlist is added, the user must explicitly choose its initial `ShuffleMode`. This "Minted Identity" is immutable once selected; to change the mode, the playlist must be deleted from history and re-added. This ensures deterministic behavior for specialized collections.
 
 - If a relative file path appears multiple times sequentially or non-sequentially, the parser must cleanly instantiate a new database queue entry with a distinct `sequence\_id` for every occurrence.
 
@@ -114,17 +114,17 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 - **Immutable Identity:** A playlist's shuffle strategy is locked at the moment of "minting" (load time). The UI allows for manual "Reshuffle" actions within the same mode, but changing the mode requires a fresh load.
 
 - **Forward-Only Principle:** Manual reshuffles or mode transitions (if implemented) must never "wrap around" to previously played tracks in the current album or folder context. Any tracks appearing before the current playback anchor in the folder sequence are **permanently discarded** from the new queue to keep the experience forward-moving.
-    - **Structural Truncation:** Any tracks appearing before the current playback anchor in the folder sequence are permanently discarded from the new queue array.
-    - **Persistence:** This truncated `LongArray` must be persisted back to the `PlaylistStateEntity` in Room immediately.
-    - **UI Synchronization:** Updating the database with the new, truncated array ensures the UI counter (e.g., `1/91`) remains perfectly synchronized with the active playback sequence.
+  - **Structural Truncation:** Any tracks appearing before the current playback anchor in the folder sequence are permanently discarded from the new queue array.
+  - **Persistence:** This truncated `LongArray` must be persisted back to the `PlaylistStateEntity` in Room immediately.
+  - **UI Synchronization:** Updating the database with the new, truncated array ensures the UI counter (e.g., `1/91`) remains perfectly synchronized with the active playback sequence.
 
 - **TRACK_RANDOM:** Shuffle mapping must be calculated using unique `sequence_id` bounds. UI should display current shuffled position (e.g., `5/100`).
 
 - **RANDOM_FOLDER_SEQUENTIAL:**
-    - Shuffle the list of directories.
-    - Play all tracks in a directory sequentially.
-    - **History Buffer:** Maintain a history of at least 24 folders. Do not re-select a folder from this history.
-    - **Constraint:** If the total folder count in the M3U is less than 24, the history buffer size is 0.
+  - Shuffle the list of directories.
+  - Play all tracks in a directory sequentially.
+  - **History Buffer:** Maintain a history of at least 24 folders. Do not re-select a folder from this history.
+  - **Constraint:** If the total folder count in the M3U is less than 24, the history buffer size is 0.
 
 ## 7. Persistence & State
 
@@ -146,7 +146,7 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 
 - Never instantiate heavy domain models or UI state representations for the entire queue or library at once.
 
-- All shuffle mappings, track selections, and queue indices must be processed using low-overhead primitive data types (`IntArray` or `LongArray`). 
+- All shuffle mappings, track selections, and queue indices must be processed using low-overhead primitive data types (`IntArray` or `LongArray`).
 
 - **Sequence ID Streaming:** The `QueueDao` must provide a `getAllQueueIds()` query to stream unique sequential IDs directly into primitive arrays for the `ShuffleEngine`.
 
