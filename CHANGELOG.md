@@ -14,12 +14,19 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-08-01
+
 ### Added
 
+- Standardized `.github/PULL_REQUEST_TEMPLATE.md` checklist for contributor pull requests.
+- Structured GitHub Issue Forms (`bug_report.yml`, `feature_request.yml`, and `config.yml`) in `.github/ISSUE_TEMPLATE/`.
+- Official `CONTRIBUTING.md` guidelines detailing contribution workflow, scope boundaries, architectural constraints, and testing standards.
 - Project-level `.markdownlint.json` and `.vscode/settings.json` configuration disabling `MD025` (multiple top-level headings) and line length checks, allowing screenshot `<img>` tags, and setting `MD024` sibling-only heading rules.
 
 ### Changed
 
+- Hardened `.github/workflows/pr-build.yml` for fork PRs by isolating signing keystore steps behind secret presence checks.
+- Updated `README.md` Project Status & Disclaimer section to indicate that Pull Requests aligning with project goals may be accepted, linking to `CONTRIBUTING.md`.
 - Refined Markdown formatting, list indentation, line spacing, and heading syntax across `README.md`, `TESTING_STRATEGY.md`, `LICENSE`, `AGENTS.md`, and KDoc comments in `VersionInfo.kt`.
 
 ## [1.0.2] - 2026-07-25
