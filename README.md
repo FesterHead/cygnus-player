@@ -6,7 +6,7 @@ Designed for collectors with large libraries, Cygnus Player prioritizes a low me
 
 ## ⚠️ Project Status & Disclaimer
 
-Cygnus Player is a personal, open-source hobby project provided strictly **as-is** without official support, bug tracking, or feature updates. Public Issues and Pull Requests are disabled, and contributions are not being accepted. You are welcome to fork the repository and adapt the code to suit your own needs under the terms of the license.
+Cygnus Player is a personal, open-source hobby project provided strictly **as-is** without official support or formal issue tracking. Feature scope is intentionally tight and focused on a minimalist MP3 playback engine. However, pull requests targeting `main` (or `develop`) that align with project goals and technical standards may be accepted. Please review [CONTRIBUTING.md](CONTRIBUTING.md) before submitting code changes. You are also welcome to fork the repository and adapt the code to suit your own needs under the terms of the MIT License.
 
 ## 🌌 Why "Cygnus Player"?
 
@@ -56,9 +56,9 @@ Modern commercial streaming apps and feature-bloated players treat music like a 
 
 Cygnus Player is fully compatible with modern Android **Scoped Storage** requirements. To ensure high-performance relative path resolution for massive libraries, please follow these steps:
 
-1.  **Select Music Root**: On first launch, use the prompt to select your main music directory (e.g., `Internal Storage > Music`). This grants Cygnus persistent, recursive access to your entire library.
-2.  **Relative Path Resolution**: The app uses the **MediaStore API** to map M3U relative paths (e.g., `Rush/2112/01 - 2112.mp3`) to system-registered content URIs. This avoids restricted direct filesystem access and ensures absolute sequence integrity.
-3.  **Permissions**: Ensure the `READ_MEDIA_AUDIO` permission is granted to allow the system to index your music files for the MediaStore.
+1. **Select Music Root**: On first launch, use the prompt to select your main music directory (e.g., `Internal Storage > Music`). This grants Cygnus persistent, recursive access to your entire library.
+2. **Relative Path Resolution**: The app uses the **MediaStore API** to map M3U relative paths (e.g., `Rush/2112/01 - 2112.mp3`) to system-registered content URIs. This avoids restricted direct filesystem access and ensures absolute sequence integrity.
+3. **Permissions**: Ensure the `READ_MEDIA_AUDIO` permission is granted to allow the system to index your music files for the MediaStore.
 
 ## 🤖 AI-Assisted Development
 
@@ -201,22 +201,22 @@ Cygnus Player utilizes GitHub Actions for continuous integration and delivery:
 
 The app's version is maintained in two locations for build stability:
 
-1.  **`version.properties`**: The primary source of truth used by Gradle and CI/CD.
-2.  **`VersionInfo.kt`**: A static object in the source code used by the UI to avoid `BuildConfig` race conditions in experimental environments.
+1. **`version.properties`**: The primary source of truth used by Gradle and CI/CD.
+2. **`VersionInfo.kt`**: A static object in the source code used by the UI to avoid `BuildConfig` race conditions in experimental environments.
 
 Before merging to `main` to trigger a release, ensure both files are updated:
 
 ```properties
 # version.properties
-VERSION_NAME=1.0.2
-VERSION_CODE=3
+VERSION_NAME=1.0.3
+VERSION_CODE=4
 ```
 
 ```kotlin
 // VersionInfo.kt
 object VersionInfo {
-    const val VERSION_NAME = "1.0.2"
-    const val VERSION_CODE = 3
+    const val VERSION_NAME = "1.0.3"
+    const val VERSION_CODE = 4
 }
 ```
 

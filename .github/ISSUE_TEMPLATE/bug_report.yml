@@ -1,0 +1,60 @@
+name: 🐛 Bug Report
+description: Create a report to help us reproduce and fix a bug in Cygnus Player.
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please ensure you are testing against local MP3 files and M3U/M3U8 playlists.
+  - type: input
+    id: version
+    attributes:
+      label: Cygnus Player Version
+      description: What version of Cygnus Player are you using? (Check Settings screen or version.properties)
+      placeholder: "e.g., 1.0.2"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device & Android Version
+      description: What device and Android version are you using?
+      placeholder: "e.g., Pixel 8 Pro running Android 16 (API 36) / Android Emulator API 36"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description & Reproduction Steps
+      description: Explain the issue clearly and list the exact steps to reproduce it.
+      placeholder: |
+        1. Open Cygnus Player
+        2. Load M3U playlist "rock_classics.m3u"
+        3. Tap Play/Pause toggle
+        4. See error...
+    validations:
+      required: true
+  - type: textarea
+    id: expected-actual
+    attributes:
+      label: Expected vs Actual Behavior
+      description: Describe what you expected to happen versus what actually occurred.
+    validations:
+      required: true
+  - type: textarea
+    id: playlist-context
+    attributes:
+      label: Playlist & Audio Context
+      description: Detail relevant audio format, M3U path structure (relative vs absolute), ReplayGain tags, or SAF root folder permissions.
+      placeholder: "e.g., Relative path M3U playlist with 15,000 MP3 files stored in Scoped Storage root Music folder."
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logcat / Stack Trace / Screenshots
+      description: Paste any relevant logcat output, stack traces, or upload screenshots.
+      render: shell
+    validations:
+      required: false

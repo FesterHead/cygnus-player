@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Contribution Guidelines
+    url: https://github.com/FesterHead/cygnus-player/blob/develop/CONTRIBUTING.md
+    about: Review project scope, architectural rules, and technical standards before opening a pull request.
+  - name: Storage & SAF Setup
+    url: https://github.com/FesterHead/cygnus-player/blob/develop/README.md#-%EF%B8%8F-storage--scoped-storage-compliance
+    about: Guidelines for setting up Scoped Storage access and MediaStore relative path resolution.

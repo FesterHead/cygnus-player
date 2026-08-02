@@ -1,3 +1,15 @@
 {
-  "java.configuration.updateBuildConfiguration": "automatic"
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "markdownlint.config": {
+    "MD013": false,
+    "MD024": {
+      "siblings_only": true
+    },
+    "MD025": false,
+    "MD033": {
+      "allowed_elements": [
+        "img"
+      ]
+    }
+  }
 }
