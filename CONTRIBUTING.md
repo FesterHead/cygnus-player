@@ -30,9 +30,10 @@ Before proposing features or submitting pull requests, please keep the following
 
 If your pull request introduces a new version release:
 
-1. Update `VERSION_NAME` and `VERSION_CODE` in `version.properties`.
-2. Keep `app/src/main/java/com/festerhead/cygnusplayer/VersionInfo.kt` synchronized with `version.properties`.
-3. Update `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Keep unreleased changes under `## [Unreleased]`.
+1. Sync `main` into `develop` (`git checkout develop; git merge main`) to ensure `develop` is up-to-date with `main` before pushing and opening the Pull Request. This avoids triggering redundant secondary PR check builds on GitHub.
+2. Update `VERSION_NAME` and `VERSION_CODE` in `version.properties`.
+3. Keep `app/src/main/java/com/festerhead/cygnusplayer/VersionInfo.kt` synchronized with `version.properties`.
+4. Update `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Mint the numbered release heading before opening the PR.
 
 ---
 
