@@ -86,15 +86,22 @@ class PlaylistPickerViewModel(
     }
 
     private fun syncActivePlaylistWithService() {
+        val app = getApplication<android.app.Application>()
+        val prefs = app.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
         val controller = if (mediaControllerFuture?.isDone == true) mediaControllerFuture?.get() else null
-        val path = controller?.currentMediaItem?.mediaMetadata?.extras?.getString(CygnusPlaybackService.EXTRA_ACTIVE_PLAYLIST_PATH)
+        val extrasPath = controller?.currentMediaItem?.mediaMetadata?.extras?.getString(CygnusPlaybackService.EXTRA_ACTIVE_PLAYLIST_PATH)
+        val path = extrasPath ?: prefs.getString("active_playlist_path", null)
         
         if (path != null) {
-            val savedState = uiState.value.history.find { it.m3uPath == path }
-            _uiState.update { it.copy(
-                activePlaylistPath = path,
-                activeShuffleMode = savedState?.shuffleMode ?: ShuffleMode.SEQUENTIAL
-            ) }
+            _uiState.update { state ->
+                val savedState = state.history.find { it.m3uPath == path }
+                val sorted = sortHistory(state.history, path)
+                state.copy(
+                    history = sorted,
+                    activePlaylistPath = path,
+                    activeShuffleMode = savedState?.shuffleMode ?: ShuffleMode.SEQUENTIAL
+                )
+            }
         }
     }
 
@@ -104,14 +111,25 @@ class PlaylistPickerViewModel(
     fun loadSettings(context: Context) {
         val prefs = context.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
         val root = prefs.getString("library_root", null)
-        _uiState.update { it.copy(libraryRootUri = root) }
+        val activePath = prefs.getString("active_playlist_path", null) ?: _uiState.value.activePlaylistPath
+        _uiState.update { state ->
+            val sorted = sortHistory(state.history, activePath)
+            state.copy(
+                libraryRootUri = root,
+                activePlaylistPath = activePath,
+                history = sorted
+            )
+        }
     }
 
     private fun loadHistory() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val history = playlistStateDao.getAllStates()
-            _uiState.update { it.copy(history = history, isLoading = false) }
+            val prefs = getApplication<android.app.Application>().getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
+            val activePath = prefs.getString("active_playlist_path", null) ?: _uiState.value.activePlaylistPath
+            val sorted = sortHistory(history, activePath)
+            _uiState.update { it.copy(history = sorted, activePlaylistPath = activePath, isLoading = false) }
             syncActivePlaylistWithService() // Re-sync in case history loaded after controller
         }
     }
@@ -137,32 +155,52 @@ class PlaylistPickerViewModel(
      * Updates the currently active playlist path in the UI.
      */
     fun setActivePlaylist(path: String?) {
-        _uiState.update { it.copy(activePlaylistPath = path) }
+        _uiState.update { state ->
+            val sorted = sortHistory(state.history, path)
+            state.copy(history = sorted, activePlaylistPath = path)
+        }
     }
 
     /**
-     * Handles playlist selection, deciding whether to start playback or just navigate.
+     * Handles playlist selection, updating lastOpened timestamp and starting playback if required.
      */
     fun onPlaylistClicked(context: Context, path: String, onNavigateToNowPlaying: () -> Unit) {
-        if (uiState.value.activePlaylistPath == path) {
-            // Already playing this playlist, just navigate
-            onNavigateToNowPlaying()
-        } else {
-            // New playlist selection
-            val intent = Intent(context, CygnusPlaybackService::class.java).apply {
-                putExtra(CygnusPlaybackService.EXTRA_PLAYLIST_PATH, path)
+        viewModelScope.launch {
+            val existingState = playlistStateDao.getStateForPlaylist(path)
+            if (existingState != null) {
+                playlistStateDao.saveState(existingState.copy(lastOpened = System.currentTimeMillis()))
             }
-            context.startForegroundService(intent)
-            
-            // Optimistically update UI
-            val savedState = uiState.value.history.find { it.m3uPath == path }
-            _uiState.update { it.copy(
-                activePlaylistPath = path,
-                activeShuffleMode = savedState?.shuffleMode ?: ShuffleMode.SEQUENTIAL
-            ) }
-            onNavigateToNowPlaying()
+
+            val prefs = context.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("active_playlist_path", path).apply()
+
+            if (uiState.value.activePlaylistPath == path) {
+                // Already playing this playlist, just navigate
+                onNavigateToNowPlaying()
+            } else {
+                // New playlist selection
+                val intent = Intent(context, CygnusPlaybackService::class.java).apply {
+                    putExtra(CygnusPlaybackService.EXTRA_PLAYLIST_PATH, path)
+                }
+                context.startForegroundService(intent)
+                
+                // Optimistically update UI
+                val savedState = uiState.value.history.find { it.m3uPath == path }
+                _uiState.update { state ->
+                    val sorted = sortHistory(state.history, path)
+                    state.copy(
+                        history = sorted,
+                        activePlaylistPath = path,
+                        activeShuffleMode = savedState?.shuffleMode ?: ShuffleMode.SEQUENTIAL
+                    )
+                }
+                onNavigateToNowPlaying()
+            }
+            loadHistory()
         }
     }
+
+
 
     /**
      * Called when a playlist URI is selected via the system file picker.
@@ -231,10 +269,13 @@ class PlaylistPickerViewModel(
             val app = context.applicationContext as CygnusApplication
             app.playlistRepository.deletePlaylistData(state.m3uPath)
 
-            // If we deleted the active playlist, clear it from UI
+            // If we deleted the active playlist, clear it from UI and prefs
             if (uiState.value.activePlaylistPath == state.m3uPath) {
+                val prefs = context.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
+                prefs.edit().remove("active_playlist_path").apply()
                 _uiState.update { it.copy(activePlaylistPath = null) }
             }
+
 
             loadHistory()
         }
@@ -253,4 +294,25 @@ class PlaylistPickerViewModel(
         super.onCleared()
         mediaControllerFuture?.let { MediaController.releaseFuture(it) }
     }
+
+    companion object {
+        /**
+         * Positions the active playing playlist at index 0 of the history list if present,
+         * maintaining the relative order of all other items.
+         *
+         * @param history List of stored playlist state entities.
+         * @param activePath Path of the currently active playing playlist, or null if no playlist is active.
+         * @return Re-ordered history list with active playlist at the top.
+         */
+        fun sortHistory(
+            history: List<PlaylistStateEntity>,
+            activePath: String?
+        ): List<PlaylistStateEntity> {
+            if (activePath.isNullOrEmpty() || history.isEmpty()) return history
+            val activeItem = history.find { it.m3uPath == activePath } ?: return history
+            val remaining = history.filter { it.m3uPath != activePath }
+            return listOf(activeItem) + remaining
+        }
+    }
 }
+

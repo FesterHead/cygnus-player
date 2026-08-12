@@ -17,6 +17,15 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
+ * Screen destinations supported by the application.
+ */
+enum class Screen {
+    PLAYLIST_PICKER,
+    NOW_PLAYING,
+    SETTINGS
+}
+
+/**
  * The main activity of the Cygnus Player application.
  *
  * Acts as the entry point, sets up the Database, handles runtime permissions,
@@ -50,40 +59,57 @@ class MainActivity : ComponentActivity() {
 
                 if (isReady) {
                     val pickerUiState by viewModel.uiState.collectAsState()
-                    var showSettings by remember { mutableStateOf(value = false) }
+                    var currentScreen by remember { mutableStateOf(Screen.PLAYLIST_PICKER) }
+                    var hasInitialNavigated by remember { mutableStateOf(false) }
 
-                    if (showSettings) {
-                        SettingsScreen(onNavigateBack = { showSettings = false })
-                    } else if (pickerUiState.activePlaylistPath != null) {
-                        val nowPlayingViewModel: NowPlayingViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-                        LaunchedEffect(pickerUiState.activePlaylistPath, pickerUiState.activeShuffleMode) {
-                            val path = pickerUiState.activePlaylistPath!!
-                            val decodedPath = try {
-                                android.net.Uri.decode(path)
-                            } catch (_: Exception) {
-                                path
+                    // On initial launch, navigate to Now Playing if a playlist is active
+                    LaunchedEffect(pickerUiState.activePlaylistPath) {
+                        if (!hasInitialNavigated && pickerUiState.activePlaylistPath != null) {
+                            currentScreen = Screen.NOW_PLAYING
+                            hasInitialNavigated = true
+                        }
+                    }
+
+                    when (currentScreen) {
+                        Screen.SETTINGS -> {
+                            SettingsScreen(onNavigateBack = { currentScreen = Screen.PLAYLIST_PICKER })
+                        }
+                        Screen.NOW_PLAYING -> {
+                            val nowPlayingViewModel: NowPlayingViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                            LaunchedEffect(pickerUiState.activePlaylistPath, pickerUiState.activeShuffleMode) {
+                                val path = pickerUiState.activePlaylistPath ?: return@LaunchedEffect
+                                val decodedPath = try {
+                                    android.net.Uri.decode(path)
+                                } catch (_: Exception) {
+                                    path
+                                }
+                                val name = decodedPath.substringAfterLast("/").substringAfterLast("\\")
+                                nowPlayingViewModel.initialize(
+                                    name,
+                                    pickerUiState.activeShuffleMode,
+                                )
                             }
-                            val name = decodedPath.substringAfterLast("/").substringAfterLast("\\")
-                            nowPlayingViewModel.initialize(
-                                name,
-                                pickerUiState.activeShuffleMode,
+
+                            NowPlayingScreen(
+                                viewModel = nowPlayingViewModel,
+                                onNavigateBack = {
+                                    currentScreen = Screen.PLAYLIST_PICKER
+                                }
                             )
                         }
-
-                        NowPlayingScreen(
-                            viewModel = nowPlayingViewModel,
-                        ) {
-                            viewModel.setActivePlaylist(null)
-                        }
-                    } else {
-                        PlaylistPickerScreen(
-                            viewModel = viewModel,
-                            onPlaylistSelected = { path ->
-                                viewModel.onPlaylistClicked(this, path) {
-                                    // Handled by reactive state
+                        Screen.PLAYLIST_PICKER -> {
+                            PlaylistPickerScreen(
+                                viewModel = viewModel,
+                                onPlaylistSelected = { path ->
+                                    viewModel.onPlaylistClicked(this, path) {
+                                        currentScreen = Screen.NOW_PLAYING
+                                    }
+                                },
+                                onSettingsClicked = {
+                                    currentScreen = Screen.SETTINGS
                                 }
-                            },
-                        ) { showSettings = true }
+                            )
+                        }
                     }
                 }
             }

@@ -53,12 +53,14 @@ class CygnusWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        CygnusWidgetReceiver.requestWidgetStateUpdate(context)
         provideContent {
             GlanceTheme {
                 WidgetContent(context)
             }
         }
     }
+
 
     @Composable
     private fun WidgetContent(context: Context) {

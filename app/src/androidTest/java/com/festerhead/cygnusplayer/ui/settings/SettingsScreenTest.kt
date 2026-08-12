@@ -29,8 +29,10 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("ABOUT").assertIsDisplayed()
 
         // Verify specific items
+        composeTestRule.onNodeWithText("Music Root Folder").assertIsDisplayed()
         composeTestRule.onNodeWithText("Reset Music Root Folder").assertIsDisplayed()
         composeTestRule.onNodeWithText("GitHub Repository").assertIsDisplayed()
         composeTestRule.onNodeWithText("MIT License").assertIsDisplayed()
     }
 }
+

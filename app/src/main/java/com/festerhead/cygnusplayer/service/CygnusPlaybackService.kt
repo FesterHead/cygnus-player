@@ -40,6 +40,8 @@ import com.festerhead.cygnusplayer.core.ReplayGainType
 import androidx.core.net.toUri
 import com.festerhead.cygnusplayer.data.entities.ShuffleMode
 import com.festerhead.cygnusplayer.ui.widget.CygnusWidget
+import com.festerhead.cygnusplayer.ui.widget.CygnusWidgetReceiver
+
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
@@ -174,6 +176,13 @@ class CygnusPlaybackService : MediaLibraryService() {
             IntentFilter("com.festerhead.cygnusplayer.TOGGLE_PLAY_PAUSE"),
             RECEIVER_NOT_EXPORTED,
         )
+
+        // Register Widget Request Update Receiver
+        registerReceiver(
+            WidgetRequestUpdateReceiver(),
+            IntentFilter(CygnusWidgetReceiver.ACTION_REQUEST_WIDGET_UPDATE),
+            RECEIVER_NOT_EXPORTED,
+        )
     }
 
     private fun updateWidgetState() {
@@ -224,6 +233,15 @@ class CygnusPlaybackService : MediaLibraryService() {
         }
     }
 
+    inner class WidgetRequestUpdateReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == CygnusWidgetReceiver.ACTION_REQUEST_WIDGET_UPDATE) {
+                updateWidgetState()
+            }
+        }
+    }
+
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val channelId = "cygnus_channel"
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -257,7 +275,11 @@ class CygnusPlaybackService : MediaLibraryService() {
                     val updatedState = playlistRepository?.loadPlaylist(lastState.m3uPath)
                     if (updatedState != null) {
                         currentPlaylistPath = updatedState.m3uPath
+                        getSharedPreferences("cygnus_prefs", MODE_PRIVATE).edit()
+                            .putString("active_playlist_path", updatedState.m3uPath)
+                            .apply()
                         currentShuffleMode = updatedState.shuffleMode
+
                         
                         queueController?.initialize(updatedState.mapping!!, updatedState.lastQueueId)
                         val window = queueController?.getWindowData()
@@ -286,14 +308,24 @@ class CygnusPlaybackService : MediaLibraryService() {
         return future
     }
 
+    /**
+     * Initializes and begins playback for the specified playlist path.
+     *
+     * @param path The M3U file path or URI string to load into the queue.
+     */
     private fun startPlaylist(path: String) {
+
         if ((currentPlaylistPath == path) && isInitializing) return
         
         // Persist the current playlist's position before switching to a new one
         persistPlaybackState()
 
         currentPlaylistPath = path
+        getSharedPreferences("cygnus_prefs", MODE_PRIVATE).edit()
+            .putString("active_playlist_path", path)
+            .apply()
         isInitializing = true
+
         
         serviceScope.launch {
             try {
@@ -303,11 +335,16 @@ class CygnusPlaybackService : MediaLibraryService() {
                     queueController?.initialize(updatedState.mapping!!, updatedState.lastQueueId)
                     initializeSlidingWindow(updatedState.lastPositionMs)
                     updateWidgetState()
+                    val app = application as CygnusApplication
+                    app.database.playlistStateDao().saveState(
+                        updatedState.copy(lastOpened = System.currentTimeMillis())
+                    )
                 }
             } finally {
                 isInitializing = false
             }
         }
+
     }
 
     private fun persistPlaybackState() {

@@ -159,14 +159,19 @@ fun PlaylistPickerScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 items(uiState.history) { state ->
+                    val isActive = uiState.activePlaylistPath != null && (
+                        state.m3uPath == uiState.activePlaylistPath ||
+                        try { android.net.Uri.decode(state.m3uPath) == android.net.Uri.decode(uiState.activePlaylistPath) } catch (_: Exception) { false }
+                    )
                     PlaylistHistoryItem(
                         state = state,
                         onClick = { viewModel.onPlaylistClicked(context, state.m3uPath) { onPlaylistSelected(state.m3uPath) } },
                         onDelete = { viewModel.deleteFromHistory(context, state) },
-                        isActive = state.m3uPath == uiState.activePlaylistPath
+                        isActive = isActive
                     )
                 }
             }
+
         }
     }
 }
@@ -349,3 +354,46 @@ fun MintingButton(
         )
     }
 }
+
+/**
+ * Preview composable for active playlist item rendering.
+ */
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun PlaylistHistoryItemActivePreview() {
+    com.festerhead.cygnusplayer.ui.theme.CygnusPlayerTheme {
+        PlaylistHistoryItem(
+            state = PlaylistStateEntity(
+                m3uPath = "/storage/emulated/0/Music/Favorites.m3u",
+                lastQueueId = 0,
+                shuffleMode = ShuffleMode.SEQUENTIAL,
+                lastOpened = System.currentTimeMillis()
+            ),
+            onClick = {},
+            onDelete = {},
+            isActive = true
+        )
+    }
+}
+
+/**
+ * Preview composable for inactive playlist item rendering.
+ */
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun PlaylistHistoryItemInactivePreview() {
+    com.festerhead.cygnusplayer.ui.theme.CygnusPlayerTheme {
+        PlaylistHistoryItem(
+            state = PlaylistStateEntity(
+                m3uPath = "/storage/emulated/0/Music/Classic_Rock.m3u8",
+                lastQueueId = 0,
+                shuffleMode = ShuffleMode.RANDOM_FOLDER_SEQUENTIAL,
+                lastOpened = System.currentTimeMillis()
+            ),
+            onClick = {},
+            onDelete = {},
+            isActive = false
+        )
+    }
+}
+
