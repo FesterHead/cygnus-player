@@ -14,6 +14,10 @@ Release policy:
 
 ## [Unreleased]
 
+### Changed
+
+- Hardened ReplayGain parsing in `Media3MetadataExtractor` to handle variations in TXXX tag description whitespace and `dB` unit formatting.
+
 ## [1.0.4] - 2026-08-11
 
 ### Added
