@@ -14,6 +14,24 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-08-11
+
+### Added
+
+- Added `.markdownlintignore` configuration ignoring AI artifact files (`implementation_plan.md` and `walkthrough.md`).
+
+### Changed
+
+- Refined PowerShell aliases (`ctest`, `crun`, `cdebug`) in `README.md` to use the `-Dadb.device.serial` Gradle property, ensuring only the intended target device is used during instrumented tests when multiple devices are connected.
+- Updated PowerShell aliases to include an `adb uninstall` step and support dual-target switching between physical phone and emulator.
+- Relaxed `DatabaseStressTest` query thresholds (Single: 10ms, Folder: 50ms) to ensure stability on physical hardware under background OS load.
+
+### Fixed
+
+- Display configured Music Root Folder on Settings screen with URL decoding and marquee formatting ([#3](https://github.com/FesterHead/cygnus-player/issues/3)).
+- Resolved home screen widget metadata update delay on initial add during active playback via `REQUEST_WIDGET_UPDATE` broadcast ([#4](https://github.com/FesterHead/cygnus-player/issues/4)).
+- Display playing triangle indicator on playlist screen for active playlist and position active playlist at top of history list ([#5](https://github.com/FesterHead/cygnus-player/issues/5)).
+
 ## [1.0.3] - 2026-08-01
 
 ### Added

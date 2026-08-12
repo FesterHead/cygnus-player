@@ -11,21 +11,27 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 /**
- * Diagnostic data for the Settings screen.
+ * Diagnostic data and configuration state for the Settings screen.
  * 
  * @property totalTracks Total unique tracks indexed in the database.
  * @property totalPlaylists Total number of playlists in history.
+ * @property musicRootFolder User-friendly display name of the configured music root folder.
  */
 data class SettingsUiState(
     val totalTracks: Int = 0,
     val totalPlaylists: Int = 0,
+    val musicRootFolder: String? = null,
 )
 
 /**
  * ViewModel for the Settings screen.
  * Handles configuration resets and diagnostic data retrieval.
+ *
+ * @param application The application context.
  */
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -33,18 +39,29 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
-        loadDiagnostics()
+        loadSettings()
     }
 
     /**
-     * Refreshes the database diagnostic counts.
+     * Refreshes settings configuration state and database diagnostic counts.
      */
-    fun loadDiagnostics() {
+    fun loadSettings() {
+        val app = getApplication<Application>()
+        val prefs = app.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
+        val rawRoot = prefs.getString("library_root", null)
+        val formattedRoot = formatMusicRootFolder(rawRoot)
+
         viewModelScope.launch {
-            val app = getApplication<CygnusApplication>()
-            val tracks = app.database.trackDao().getTrackCount()
-            val playlists = app.database.playlistStateDao().getPlaylistCount()
-            _uiState.update { it.copy(totalTracks = tracks, totalPlaylists = playlists) }
+            val cygnusApp = getApplication<CygnusApplication>()
+            val tracks = cygnusApp.database.trackDao().getTrackCount()
+            val playlists = cygnusApp.database.playlistStateDao().getPlaylistCount()
+            _uiState.update {
+                it.copy(
+                    totalTracks = tracks,
+                    totalPlaylists = playlists,
+                    musicRootFolder = formattedRoot
+                )
+            }
         }
     }
 
@@ -55,5 +72,39 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val app = getApplication<Application>()
         val prefs = app.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
         prefs.edit { remove("library_root") }
+        _uiState.update { it.copy(musicRootFolder = null) }
+    }
+
+    companion object {
+        /**
+         * Formats a raw storage URI or file path string into a clean, readable display string.
+         *
+         * @param rawUriString Raw URI string stored in SharedPreferences (e.g. SAF DocumentTree URI).
+         * @return Formatted human-readable path string, or null if [rawUriString] is null or blank.
+         */
+        fun formatMusicRootFolder(rawUriString: String?): String? {
+            if (rawUriString.isNullOrBlank()) return null
+            return try {
+                val decoded = URLDecoder.decode(rawUriString, StandardCharsets.UTF_8.name())
+                when {
+                    rawUriString.contains("/tree/") -> {
+                        val treeSegment = rawUriString.substringAfter("/tree/").substringBefore("?").substringBefore("#")
+                        val decodedTree = URLDecoder.decode(treeSegment, StandardCharsets.UTF_8.name())
+                        when {
+                            decodedTree.startsWith("primary:") -> decodedTree.replaceFirst("primary:", "Internal Storage > ")
+                            decodedTree.startsWith("raw:") -> decodedTree.removePrefix("raw:")
+                            else -> decodedTree
+                        }
+                    }
+                    rawUriString.startsWith("file://") -> {
+                        decoded.removePrefix("file://")
+                    }
+                    else -> decoded
+                }
+            } catch (_: Exception) {
+                rawUriString
+            }
+        }
     }
 }
+

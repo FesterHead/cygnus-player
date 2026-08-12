@@ -139,28 +139,77 @@ Cygnus Player utilizes a custom-designed **Adaptive Icon** that reflects the cos
 
 ## 🧪 High-Efficiency Workflows
 
-To maintain "Zero-Manual-Discovery" of bugs while bypassing framework-level environmental issues (like the Android 17.1 binder deadlock), use the following PowerShell aliases.
+To maintain "Zero-Manual-Discovery" of bugs while bypassing framework-level environmental issues and supporting multi-device environments (Phone vs. Emulator), use the following PowerShell aliases.
 
 ### 1. Alias Setup
 
-Add these to your PowerShell `$PROFILE` for maximum productivity:
+To obtain your target device serial numbers, run `adb devices` in your terminal:
+
+```powershell
+adb devices
+# Output example:
+# List of devices attached
+# 44201JEKB09382    device
+# emulator-5554     device
+```
+
+Replace `"44201JEKB09382"` with your physical device's serial number, or pass `"emu"` to target the local emulator (`emulator-5554`).
+
+Add these helper functions to your PowerShell `$PROFILE`:
 
 ```powershell
 function ctest {
-    adb shell input keyevent 224; adb shell wm dismiss-keyguard
-    ./gradlew test connectedDebugAndroidTest
+    param([string]$target = "44201JEKB09382")
+    if ($target -eq "emu") { $target = "emulator-5554" }
+
+    adb -s $target shell input keyevent 224
+    adb -s $target shell wm dismiss-keyguard
+    adb -s $target uninstall com.festerhead.cygnusplayer
+    try {
+        $env:ANDROID_SERIAL = $target
+        ./gradlew test connectedDebugAndroidTest
+    } finally {
+        $env:ANDROID_SERIAL = $null
+    }
 }
+
 function crun {
-    adb shell input keyevent 224; adb shell wm dismiss-keyguard
-    ./gradlew installRelease
-    adb shell am start -n com.festerhead.cygnusplayer/.MainActivity
+    param([string]$target = "44201JEKB09382")
+    if ($target -eq "emu") { $target = "emulator-5554" }
+
+    adb -s $target shell input keyevent 224
+    adb -s $target shell wm dismiss-keyguard
+    adb -s $target uninstall com.festerhead.cygnusplayer
+    try {
+        $env:ANDROID_SERIAL = $target
+        ./gradlew installRelease
+    } finally {
+        $env:ANDROID_SERIAL = $null
+    }
+    adb -s $target install app/build/outputs/apk/release/app-release.apk
+    adb -s $target shell am start -n com.festerhead.cygnusplayer/.MainActivity
 }
+
 function cdebug {
-    adb shell input keyevent 224; adb shell wm dismiss-keyguard
-    ./gradlew installDebug
-    adb shell am start -n com.festerhead.cygnusplayer/.MainActivity
+    param([string]$target = "44201JEKB09382")
+    if ($target -eq "emu") { $target = "emulator-5554" }
+
+    adb -s $target shell input keyevent 224
+    adb -s $target shell wm dismiss-keyguard
+    adb -s $target uninstall com.festerhead.cygnusplayer
+    try {
+        $env:ANDROID_SERIAL = $target
+        ./gradlew installDebug
+    } finally {
+        $env:ANDROID_SERIAL = $null
+    }
+    adb -s $target shell am start -n com.festerhead.cygnusplayer/.MainActivity
 }
 ```
+
+> [!NOTE]
+> The `$env:ANDROID_SERIAL` environment variable ensures Gradle tasks (like `connectedDebugAndroidTest` or `installDebug`) target only the specified serial when multiple Android devices are connected.
+
 
 ### 2. Manual Commands
 

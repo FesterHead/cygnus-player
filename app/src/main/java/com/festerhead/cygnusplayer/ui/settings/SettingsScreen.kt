@@ -1,6 +1,7 @@
 package com.festerhead.cygnusplayer.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +31,10 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val uriHandler = LocalUriHandler.current
+
+    LaunchedEffect(Unit) {
+        viewModel.loadSettings()
+    }
 
     Scaffold(
         topBar = {
@@ -61,6 +66,22 @@ fun SettingsScreen(
         ) {
             // Configuration Section
             SettingsSection(title = "Configuration") {
+                Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                    Text(
+                        text = "Music Root Folder",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = uiState.musicRootFolder ?: "Not set",
+                        fontSize = 14.sp,
+                        color = if (uiState.musicRootFolder != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.basicMarquee()
+                    )
+                }
                 Button(
                     onClick = { viewModel.resetRootFolder() },
                     modifier = Modifier.fillMaxWidth(),
@@ -101,6 +122,12 @@ fun SettingsScreen(
     }
 }
 
+/**
+ * Container card for grouping settings items into titled sections.
+ *
+ * @param title Section header title text.
+ * @param content Composable content rendered inside the section card.
+ */
 @Composable
 fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column {
@@ -123,6 +150,12 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
     }
 }
 
+/**
+ * Diagnostic key-value row.
+ *
+ * @param label Description label for the metric.
+ * @param value Formatted string value of the metric.
+ */
 @Composable
 fun DiagnosticRow(label: String, value: String) {
     Row(
@@ -135,3 +168,13 @@ fun DiagnosticRow(label: String, value: String) {
         Text(text = value, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun SettingsScreenPreview() {
+    com.festerhead.cygnusplayer.ui.theme.CygnusPlayerTheme {
+        SettingsScreen(onNavigateBack = {})
+    }
+}
+
+
