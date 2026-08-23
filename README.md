@@ -290,6 +290,13 @@ function cauto {
     $dhuPath = "$env:LOCALAPPDATA\Android\Sdk\extras\google\auto\desktop-head-unit.exe"
     Start-Process -FilePath $dhuPath
 }
+
+function csync {
+    git fetch origin
+    git checkout main; git pull origin main
+    git checkout develop; git merge main
+    git push origin develop
+}
 ```
 
 > [!NOTE]
