@@ -14,9 +14,28 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-08-23
+
+### Added
+
+- Documentation for Android Auto Developer Mode, "Unknown sources" sideloading setup, and local Desktop Head Unit (DHU) emulator testing in `README.md` and `TESTING_STRATEGY.md`.
+- Robolectric unit tests in `CygnusPlaybackServiceUnitTest` for Android Auto service intent filters and `MediaLibraryCallback.onGetLibraryRoot`.
+
 ### Changed
 
+- Refactored PowerShell aliases (`ctest`, `crun`, `cdebug`, `cauto`) to v1.5, implementing full environment sanitization (unsetting `GRADLE_HOME`/`JAVA_HOME`) and background process management for the Desktop Head Unit (DHU).
+- Refactored `SharedPreferences` usage in `PlaylistPickerViewModel` and `CygnusPlaybackService` to use modern idiomatic Kotlin KTX `edit { ... }` blocks, resolving static analysis warnings.
 - Hardened ReplayGain parsing in `Media3MetadataExtractor` to handle variations in TXXX tag description whitespace and `dB` unit formatting.
+- Refined playlist file picker in `PlaylistPickerScreen` to specifically filter for M3U and M3U8 MIME types.
+- Enforced ultimate minimalism in Android Auto by disabling library browsing and hiding next/previous navigation controls via `ForwardingPlayer`, aligning the head unit experience with the "Immutable Journey" philosophy.
+- Implemented dynamic Media Session ID generation to force Android Auto cache refreshes and prevent "phantom" playlist suggestions.
+- Restored legacy `MediaBrowserService` intent filter to ensure app visibility in Android Auto while maintaining internal code lockdown.
+
+### Fixed
+
+- Added path sanitization in `PlaylistPickerViewModel` to prevent corrupted object `toString()` metadata from leaking into the UI.
+- Resolved Android Auto app recognition issue ([#7](https://github.com/FesterHead/cygnus-player/issues/7)) by declaring `com.google.android.gms.car.notification.SmallIcon` metadata, adding `androidx.media3.session.MediaSessionService` intent filter action to `CygnusPlaybackService`, and cleaning up invalid manifest properties.
+- Fixed string interpolation bug in `CygnusPlaybackService` library item generation that caused playback failures in Android Auto.
 
 ## [1.0.4] - 2026-08-11
 
@@ -26,7 +45,8 @@ Release policy:
 
 ### Changed
 
-- Refined PowerShell aliases (`ctest`, `crun`, `cdebug`) in `README.md` to use the `-Dadb.device.serial` Gradle property, ensuring only the intended target device is used during instrumented tests when multiple devices are connected.
+- Refined PowerShell aliases (`ctest`, `crun`, `cdebug`) in `README.md` to use the `ANDROID_SERIAL` environment variable within a `try/finally` block, ensuring reliable device targeting and environment sanitization.
+- Added specialized `cauto` PowerShell alias for streamlined Android Auto Desktop Head Unit (DHU) testing, handling port forwarding and debug installation in one step.
 - Updated PowerShell aliases to include an `adb uninstall` step and support dual-target switching between physical phone and emulator.
 - Relaxed `DatabaseStressTest` query thresholds (Single: 10ms, Folder: 50ms) to ensure stability on physical hardware under background OS load.
 

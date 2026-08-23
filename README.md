@@ -95,6 +95,10 @@ The database tracks folder relationships via a dedicated `FolderEntity`. This en
 
 ### The "Singularity" Icon
 
+<p align="center">
+  <img src="docs/app_icon_round.webp" alt="Cygnus Player App Icon" width="128" height="128" />
+</p>
+
 Cygnus Player utilizes a custom-designed **Adaptive Icon** that reflects the cosmic and musical themes of the project:
 
 - **Design Principle**: A minimalist geometric representation of **Cygnus X-1**, the first black hole discovered in our galaxy.
@@ -137,6 +141,36 @@ Cygnus Player utilizes a custom-designed **Adaptive Icon** that reflects the cos
   - [x] Position Persistence: Per-playlist millisecond-accurate resumption.
   - [x] Smart Bluetooth: Automated playback resumption upon device reconnection.
 
+### 🚗 Android Auto Setup & Local Testing
+
+Because Cygnus Player is distributed via GitHub Releases (or custom builds) rather than the Google Play Store, Android Auto's security policy hides sideloaded media apps by default. Follow these steps to enable Cygnus Player on Android Auto and test it locally on your PC.
+
+#### 1. Enable Android Auto Developer Mode & Unknown Sources (Phone Setup)
+
+1. Open **Settings** on your phone and search for **Android Auto**.
+2. Scroll to the bottom and tap **Version** **10 times** to enable **Developer Mode**.
+3. Tap the top-right menu (**⋮**) -> **Developer settings**.
+4. Check **"Unknown sources"**.
+5. Reconnect your phone to your vehicle (or restart Android Auto).
+
+#### 2. Local Head Unit Testing via Desktop Head Unit (DHU)
+
+To test the Android Auto interface directly on your computer without going out to a car:
+
+1. Enable **Developer Mode** on your phone (step 1 above).
+2. Tap **⋮** in Android Auto settings on phone -> **Start head unit server**.
+3. Use the **`cauto`** alias to install the app and forward ports, or run manually:
+
+   ```powershell
+   adb forward tcp:5277 tcp:5277
+   ```
+
+4. Launch the Desktop Head Unit (DHU) emulator from your PC terminal:
+
+   ```powershell
+   & "$env:LOCALAPPDATA\Android\Sdk\extras\google\auto\desktop-head-unit.exe"
+   ```
+
 ## 🧪 High-Efficiency Workflows
 
 To maintain "Zero-Manual-Discovery" of bugs while bypassing framework-level environmental issues and supporting multi-device environments (Phone vs. Emulator), use the following PowerShell aliases.
@@ -158,58 +192,108 @@ Replace `"44201JEKB09382"` with your physical device's serial number, or pass `"
 Add these helper functions to your PowerShell `$PROFILE`:
 
 ```powershell
+# Cygnus Player Development Aliases (v1.2 - Sanitized & Multi-device)
+# Usage: crun (defaults to phone) or crun emu
+
 function ctest {
     param([string]$target = "44201JEKB09382")
     if ($target -eq "emu") { $target = "emulator-5554" }
+
+    $oldGradle = $env:GRADLE_HOME; $oldJava = $env:JAVA_HOME
+    $env:GRADLE_HOME = $null; $env:JAVA_HOME = $null
 
     adb -s $target shell input keyevent 224
     adb -s $target shell wm dismiss-keyguard
     adb -s $target uninstall com.festerhead.cygnusplayer
     try {
         $env:ANDROID_SERIAL = $target
-        ./gradlew test connectedDebugAndroidTest
+        ./gradlew connectedDebugAndroidTest --no-configuration-cache
     } finally {
         $env:ANDROID_SERIAL = $null
     }
+
+    $env:GRADLE_HOME = $oldGradle; $env:JAVA_HOME = $oldJava
 }
 
 function crun {
     param([string]$target = "44201JEKB09382")
     if ($target -eq "emu") { $target = "emulator-5554" }
 
+    $oldGradle = $env:GRADLE_HOME; $oldJava = $env:JAVA_HOME
+    $env:GRADLE_HOME = $null; $env:JAVA_HOME = $null
+
     adb -s $target shell input keyevent 224
     adb -s $target shell wm dismiss-keyguard
     adb -s $target uninstall com.festerhead.cygnusplayer
     try {
         $env:ANDROID_SERIAL = $target
-        ./gradlew installRelease
+        ./gradlew installRelease --no-configuration-cache
     } finally {
         $env:ANDROID_SERIAL = $null
     }
-    adb -s $target install app/build/outputs/apk/release/app-release.apk
     adb -s $target shell am start -n com.festerhead.cygnusplayer/.MainActivity
+
+    $env:GRADLE_HOME = $oldGradle; $env:JAVA_HOME = $oldJava
 }
 
 function cdebug {
     param([string]$target = "44201JEKB09382")
     if ($target -eq "emu") { $target = "emulator-5554" }
 
+    $oldGradle = $env:GRADLE_HOME; $oldJava = $env:JAVA_HOME
+    $env:GRADLE_HOME = $null; $env:JAVA_HOME = $null
+
     adb -s $target shell input keyevent 224
     adb -s $target shell wm dismiss-keyguard
     adb -s $target uninstall com.festerhead.cygnusplayer
     try {
         $env:ANDROID_SERIAL = $target
-        ./gradlew installDebug
+        ./gradlew installDebug --no-configuration-cache
     } finally {
         $env:ANDROID_SERIAL = $null
     }
     adb -s $target shell am start -n com.festerhead.cygnusplayer/.MainActivity
+
+    $env:GRADLE_HOME = $oldGradle; $env:JAVA_HOME = $oldJava
+}
+
+function cauto {
+    param([string]$target = "44201JEKB09382")
+    if ($target -eq "emu") { $target = "emulator-5554" }
+
+    # 1. Kill existing DHU on PC
+    taskkill /IM desktop-head-unit.exe /F /T 2>$null
+
+    # 2. Sanitize environment
+    $oldGradle = $env:GRADLE_HOME; $oldJava = $env:JAVA_HOME
+    $env:GRADLE_HOME = $null; $env:JAVA_HOME = $null
+
+    # 3. Prepare phone
+    adb -s $target shell input keyevent 224
+    adb -s $target shell wm dismiss-keyguard
+    adb -s $target uninstall com.festerhead.cygnusplayer
+    adb -s $target forward tcp:5277 tcp:5277
+
+    # 4. Build and Install
+    try {
+        $env:ANDROID_SERIAL = $target
+        ./gradlew installDebug --no-configuration-cache
+    } finally {
+        $env:ANDROID_SERIAL = $null
+    }
+
+    # 5. Restore environment
+    $env:GRADLE_HOME = $oldGradle; $env:JAVA_HOME = $oldJava
+
+    # 6. Launch DHU as an independent process
+    Write-Host "App installed. Launching DHU..." -ForegroundColor Cyan
+    $dhuPath = "$env:LOCALAPPDATA\Android\Sdk\extras\google\auto\desktop-head-unit.exe"
+    Start-Process -FilePath $dhuPath
 }
 ```
 
 > [!NOTE]
-> The `$env:ANDROID_SERIAL` environment variable ensures Gradle tasks (like `connectedDebugAndroidTest` or `installDebug`) target only the specified serial when multiple Android devices are connected.
-
+> The `$env:ANDROID_SERIAL` environment variable ensures Gradle tasks (like `connectedDebugAndroidTest` or `installDebug`) target only the specified serial when multiple Android devices are connected. The aliases also sanitize the local environment by unsetting `GRADLE_HOME` and `JAVA_HOME` to prevent toolchain conflicts.
 
 ### 2. Manual Commands
 
@@ -257,15 +341,15 @@ Before merging to `main` to trigger a release, ensure both files are updated:
 
 ```properties
 # version.properties
-VERSION_NAME=1.0.3
-VERSION_CODE=4
+VERSION_NAME=1.0.5
+VERSION_CODE=6
 ```
 
 ```kotlin
 // VersionInfo.kt
 object VersionInfo {
-    const val VERSION_NAME = "1.0.3"
-    const val VERSION_CODE = 4
+    const val VERSION_NAME = "1.0.5"
+    const val VERSION_CODE = 6
 }
 ```
 

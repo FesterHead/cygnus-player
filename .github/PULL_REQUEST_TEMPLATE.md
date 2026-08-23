@@ -18,4 +18,4 @@ Please confirm that your Pull Request adheres to Cygnus Player's core constraint
 - [ ] I have executed `./gradlew test` locally and all unit tests pass.
 - [ ] New classes, interfaces, methods, and functions include full KDoc documentation (`@param`, `@return`).
 - [ ] No raw absolute file paths or unhandled exceptions introduced.
-- [ ] `CHANGELOG.md` updated under `## [Unreleased]` (if applicable).
+- [ ] Version synced across `version.properties`, `VersionInfo.kt`, and `README.md`, and `CHANGELOG.md` updated (or release heading minted if releasing).

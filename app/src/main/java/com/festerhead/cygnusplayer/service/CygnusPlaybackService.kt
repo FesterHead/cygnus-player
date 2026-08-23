@@ -19,6 +19,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.C
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -27,8 +28,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.LibraryResult
-import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionError
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -37,6 +36,7 @@ import com.festerhead.cygnusplayer.R
 import com.festerhead.cygnusplayer.core.QueueController
 import com.festerhead.cygnusplayer.core.ReplayGainController
 import com.festerhead.cygnusplayer.core.ReplayGainType
+import androidx.core.content.edit
 import androidx.core.net.toUri
 import com.festerhead.cygnusplayer.data.entities.ShuffleMode
 import com.festerhead.cygnusplayer.ui.widget.CygnusWidget
@@ -50,7 +50,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.SettableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -62,18 +61,18 @@ import java.io.FileOutputStream
  * The core playback service for Cygnus Player.
  *
  * This service manages the [ExoPlayer] instance and hosts the [MediaLibrarySession],
- * providing a bridge for background audio playback, system-wide media control 
+ * providing a bridge for background audio playback, system-wide media control
  * integration, and Android Auto support.
  */
 @OptIn(UnstableApi::class)
 class CygnusPlaybackService : MediaLibraryService() {
 
-    private var player: ExoPlayer? = null
+    private var player: Player? = null
     private var mediaLibrarySession: MediaLibrarySession? = null
     private var queueController: QueueController? = null
     private var replayGainController: ReplayGainController? = null
     private var playlistRepository: com.festerhead.cygnusplayer.data.PlaylistRepository? = null
-    
+
     private var currentShuffleMode: ShuffleMode = ShuffleMode.SEQUENTIAL
     private var currentPlaylistPath: String? = null
     private var isInitializing = false
@@ -97,7 +96,7 @@ class CygnusPlaybackService : MediaLibraryService() {
             }
         }
     }
-    
+
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
@@ -112,7 +111,7 @@ class CygnusPlaybackService : MediaLibraryService() {
         val extractorsFactory = ExtractorsFactory { arrayOf(Mp3Extractor()) }
 
         // Initialize ExoPlayer with gapless playback optimizations
-        player = ExoPlayer.Builder(this)
+        val exoPlayer = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(this, extractorsFactory))
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -123,6 +122,41 @@ class CygnusPlaybackService : MediaLibraryService() {
             )
             .setHandleAudioBecomingNoisy(true)
             .build()
+
+        // Wrap ExoPlayer in a ForwardingPlayer that denies all navigation commands.
+        // This ensures that Android Auto and other system controllers hide the
+        // Next, Previous, and Seek buttons entirely to align with the "Immutable Journey" philosophy.
+        player = object : ForwardingPlayer(exoPlayer) {
+            override fun getAvailableCommands(): Player.Commands {
+                return super.getAvailableCommands().buildUpon()
+                    .remove(COMMAND_SEEK_TO_NEXT)
+                    .remove(COMMAND_SEEK_TO_PREVIOUS)
+                    .remove(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                    .remove(COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                    .remove(COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                    .remove(COMMAND_SEEK_BACK)
+                    .remove(COMMAND_SEEK_FORWARD)
+                    .remove(COMMAND_GET_TIMELINE)
+                    .remove(COMMAND_SEEK_TO_DEFAULT_POSITION)
+                    .build()
+            }
+
+            override fun isCommandAvailable(command: Int): Boolean {
+                return when (command) {
+                    COMMAND_SEEK_TO_NEXT,
+                    COMMAND_SEEK_TO_PREVIOUS,
+                    COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+                    COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                    COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM,
+                    COMMAND_SEEK_BACK,
+                    COMMAND_SEEK_FORWARD,
+                    COMMAND_GET_TIMELINE,
+                    COMMAND_SEEK_TO_DEFAULT_POSITION,
+                    -> false
+                    else -> super.isCommandAvailable(command)
+                }
+            }
+        }
 
         player!!.addListener(
             object : Player.Listener {
@@ -156,10 +190,12 @@ class CygnusPlaybackService : MediaLibraryService() {
             },
         )
 
-        // Initialize MediaLibrarySession with Callback for Playback Resumption and AA Browsing
+        // Initialize MediaLibrarySession with a unique ID to break stale Android Auto caches.
+        // We use a MediaLibraryCallback that restricts browsing to satisfy minimalist goals.
         mediaLibrarySession = MediaLibrarySession.Builder(this, player!!, MediaLibraryCallback())
+            .setId("CygnusMinimalistSessionV2")
             .build()
-        
+
         // Register Noisy Receiver
         val noisyReceiver = BecomingNoisyReceiver(player!!) {
             pausedByNoisy = true
@@ -255,57 +291,13 @@ class CygnusPlaybackService : MediaLibraryService() {
                 .setContentTitle("Cygnus Player")
                 .setContentText("Playback started")
                 .build(),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
         )
-            
+
         intent?.getStringExtra(EXTRA_PLAYLIST_PATH)?.let {
             startPlaylist(it)
         }
         return super.onStartCommand(intent, flags, startId)
-    }
-
-    private fun handlePlaybackResumption(): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-        val future = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
-        serviceScope.launch {
-            try {
-                val app = application as CygnusApplication
-                // Find the most recently opened playlist
-                val lastState = app.database.playlistStateDao().getAllStates().firstOrNull()
-                if (lastState != null) {
-                    val updatedState = playlistRepository?.loadPlaylist(lastState.m3uPath)
-                    if (updatedState != null) {
-                        currentPlaylistPath = updatedState.m3uPath
-                        getSharedPreferences("cygnus_prefs", MODE_PRIVATE).edit()
-                            .putString("active_playlist_path", updatedState.m3uPath)
-                            .apply()
-                        currentShuffleMode = updatedState.shuffleMode
-
-                        
-                        queueController?.initialize(updatedState.mapping!!, updatedState.lastQueueId)
-                        val window = queueController?.getWindowData()
-                        
-                        if (window?.current != null) {
-                            val mediaItems = listOfNotNull(window.prev, window.current, window.next).map { createMediaItem(it) }
-                            val startIndex = if (window.prev != null) 1 else 0
-                            
-                            future.set(
-                                MediaSession.MediaItemsWithStartPosition(
-                                    ImmutableList.copyOf(mediaItems),
-                                    startIndex,
-                                    updatedState.lastPositionMs,
-                                ),
-                            )
-                            applyReplayGain()
-                            return@launch
-                        }
-                    }
-                }
-                future.setException(IllegalStateException("No playlist state found to resume"))
-            } catch (e: Exception) {
-                future.setException(e)
-            }
-        }
-        return future
     }
 
     /**
@@ -316,17 +308,17 @@ class CygnusPlaybackService : MediaLibraryService() {
     private fun startPlaylist(path: String) {
 
         if ((currentPlaylistPath == path) && isInitializing) return
-        
+
         // Persist the current playlist's position before switching to a new one
         persistPlaybackState()
 
         currentPlaylistPath = path
-        getSharedPreferences("cygnus_prefs", MODE_PRIVATE).edit()
-            .putString("active_playlist_path", path)
-            .apply()
+        getSharedPreferences("cygnus_prefs", MODE_PRIVATE).edit {
+            putString("active_playlist_path", path)
+        }
         isInitializing = true
 
-        
+
         serviceScope.launch {
             try {
                 val updatedState = playlistRepository?.loadPlaylist(path)
@@ -337,7 +329,7 @@ class CygnusPlaybackService : MediaLibraryService() {
                     updateWidgetState()
                     val app = application as CygnusApplication
                     app.database.playlistStateDao().saveState(
-                        updatedState.copy(lastOpened = System.currentTimeMillis())
+                        updatedState.copy(lastOpened = System.currentTimeMillis()),
                     )
                 }
             } finally {
@@ -369,13 +361,13 @@ class CygnusPlaybackService : MediaLibraryService() {
     private fun initializeSlidingWindow(startPositionMs: Long = 0L) {
         serviceScope.launch {
             val window = queueController?.getWindowData() ?: return@launch
-            
+
             val mediaItems = listOfNotNull(window.prev, window.current, window.next).map { data ->
                 createMediaItem(data)
             }
-            
+
             player?.setMediaItems(mediaItems)
-            
+
             // Seek to current (index 0 if no prev, index 1 if prev exists)
             val startIndex = if (window.prev != null) 1 else 0
             player?.seekTo(startIndex, startPositionMs)
@@ -387,14 +379,14 @@ class CygnusPlaybackService : MediaLibraryService() {
     private fun updateSlidingWindow() {
         serviceScope.launch {
             val window = queueController?.getWindowData() ?: return@launch
-            
-            // The player just moved to 'current'. 
+
+            // The player just moved to 'current'.
             // In the player's queue, index 0 was 'prev', 1 was 'current', 2 was 'next'.
             // Now player index is 2 (the new current).
             // We want to remove index 0 (old prev), then add 'new next' at index 2.
-            
+
             player?.removeMediaItem(0)
-            window.next?.let { 
+            window.next?.let {
                 player?.addMediaItem(createMediaItem(it))
             }
         }
@@ -412,7 +404,7 @@ class CygnusPlaybackService : MediaLibraryService() {
 
             val gainType = replayGainController?.getRequiredGainType(currentShuffleMode) ?: ReplayGainType.TRACK_GAIN
             val multiplier = replayGainController?.getVolumeMultiplier(currentTrack, gainType) ?: 1f
-            
+
             player?.volume = multiplier
         }
     }
@@ -452,15 +444,15 @@ class CygnusPlaybackService : MediaLibraryService() {
             }
             val parentRelativePath = app.playlistRepository.resolveRelativePathFromUri(m3uUri)
             val fullRelPath = if (parentRelativePath.isEmpty()) data.track.filePath else "$parentRelativePath${data.track.filePath}"
-            
+
             var contentUri = app.playlistRepository.mediaStoreResolver.resolvePathToUri(fullRelPath)
-            
+
             if ((contentUri == null) && parentRelativePath.isNotEmpty()) {
                 val cleanRelPath = data.track.filePath.substringAfterLast("/")
                 val alternativePath = if (parentRelativePath.endsWith("/")) "$parentRelativePath$cleanRelPath" else "$parentRelativePath/$cleanRelPath"
                 contentUri = app.playlistRepository.mediaStoreResolver.resolvePathToUri(alternativePath)
             }
-            
+
             if (contentUri == null) {
                 val prefs = getSharedPreferences("cygnus_prefs", MODE_PRIVATE)
                 val libraryRootStr = prefs.getString("library_root", null)
@@ -487,7 +479,7 @@ class CygnusPlaybackService : MediaLibraryService() {
             try {
                 val app = application as CygnusApplication
                 val realMeta = app.playlistRepository.metadataExtractor.extract(trackUri)
-                
+
                 // Persist updates to DB if needed (New URI or placeholder tags)
                 if (needsUriResolution || isPlaceholder) {
                     val updatedTrack = data.track.copy(
@@ -500,7 +492,7 @@ class CygnusPlaybackService : MediaLibraryService() {
                     )
                     app.database.trackDao().update(updatedTrack)
                 }
-                
+
                 // Push the artwork (and tags if updated) back into the active player
                 serviceScope.launch(Dispatchers.Main) {
                     val p = player ?: return@launch
@@ -513,9 +505,9 @@ class CygnusPlaybackService : MediaLibraryService() {
                                 .setAlbumTitle(if (isPlaceholder) realMeta.album else data.track.album)
                                 .setArtworkData(realMeta.artwork, null)
                                 .build()
-                            
+
                             p.replaceMediaItem(i, item.buildUpon().setMediaMetadata(updatedMetadata).build())
-                            
+
                             // Explicitly trigger widget update if this item is currently playing
                             if (i == p.currentMediaItemIndex) {
                                 updateWidgetState()
@@ -537,19 +529,35 @@ class CygnusPlaybackService : MediaLibraryService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaLibrarySession
 
-    inner class MediaLibraryCallback : MediaLibrarySession.Callback {
+    private class MediaLibraryCallback : MediaLibrarySession.Callback {
         override fun onConnect(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
         ): MediaSession.ConnectionResult {
-            val connectionResult = super.onConnect(session, controller)
-            val sessionCommands = connectionResult.availableSessionCommands.buildUpon()
-                .add(SessionCommand.COMMAND_CODE_LIBRARY_GET_LIBRARY_ROOT)
-                .add(SessionCommand.COMMAND_CODE_LIBRARY_GET_CHILDREN)
+            // Define a strict "Allow-list" for session commands.
+            // We allow getting the library root to satisfy AA health checks and tests.
+            // We do NOT allow searching or getting children, which hides the browse tabs.
+            val minimalistSessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+                .add(androidx.media3.session.SessionCommand.COMMAND_CODE_LIBRARY_GET_LIBRARY_ROOT)
+                .remove(androidx.media3.session.SessionCommand.COMMAND_CODE_LIBRARY_GET_CHILDREN)
+                .remove(androidx.media3.session.SessionCommand.COMMAND_CODE_LIBRARY_GET_ITEM)
+                .remove(androidx.media3.session.SessionCommand.COMMAND_CODE_LIBRARY_SEARCH)
                 .build()
+
+            // Define a strict "Allow-list" for player commands.
+            // We ONLY allow Play/Pause, Stop, and Metadata retrieval.
+            // By excluding GET_TIMELINE and SEEK_TO_NEXT/PREVIOUS, we signal to car head units
+            // and system controllers that there is no queue to navigate, hiding those buttons.
+            val minimalistPlayerCommands = Player.Commands.Builder()
+                .add(Player.COMMAND_PLAY_PAUSE)
+                .add(Player.COMMAND_STOP)
+                .add(Player.COMMAND_GET_METADATA)
+                .add(Player.COMMAND_GET_CURRENT_MEDIA_ITEM)
+                .build()
+
             return MediaSession.ConnectionResult.accept(
-                sessionCommands,
-                connectionResult.availablePlayerCommands,
+                minimalistSessionCommands,
+                minimalistPlayerCommands,
             )
         }
 
@@ -558,14 +566,14 @@ class CygnusPlaybackService : MediaLibraryService() {
             browser: MediaSession.ControllerInfo,
             params: LibraryParams?,
         ): ListenableFuture<LibraryResult<MediaItem>> {
+            // Return a valid but non-browsable root to satisfy Android Auto health checks.
+            // Using a unique ID (CYGNUS_MINIMALIST_ROOT) helps flush any stale AA caches.
             val rootItem = MediaItem.Builder()
-                .setMediaId("RECENT_ROOT")
+                .setMediaId("CYGNUS_MINIMALIST_ROOT")
                 .setMediaMetadata(
                     MediaMetadata.Builder()
-                        .setTitle("Recent Playlists")
-                        .setIsBrowsable(true)
+                        .setIsBrowsable(false)
                         .setIsPlayable(false)
-                        .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS)
                         .build(),
                 )
                 .build()
@@ -580,30 +588,8 @@ class CygnusPlaybackService : MediaLibraryService() {
             pageSize: Int,
             params: LibraryParams?,
         ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
-            if (parentId == "RECENT_ROOT") {
-                val app = application as CygnusApplication
-                val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
-                serviceScope.launch {
-                    val history = app.database.playlistStateDao().getAllStates()
-                    val items = history.map { state ->
-                        val name = Uri.decode(state.m3uPath).substringAfterLast("/").substringAfterLast("\\")
-                        MediaItem.Builder()
-                            .setMediaId("PLAYLIST|$state.m3uPath")
-                            .setMediaMetadata(
-                                MediaMetadata.Builder()
-                                    .setTitle(name)
-                                    .setIsBrowsable(false)
-                                    .setIsPlayable(true)
-                                    .setMediaType(MediaMetadata.MEDIA_TYPE_PLAYLIST)
-                                    .build(),
-                            )
-                            .build()
-                    }
-                    future.set(LibraryResult.ofItemList(ImmutableList.copyOf(items), params))
-                }
-                return future
-            }
-            return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_BAD_VALUE))
+            // Return empty for every request to ensure no suggestions are shown.
+            return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.of(), params))
         }
 
         override fun onPlaybackResumption(
@@ -611,22 +597,11 @@ class CygnusPlaybackService : MediaLibraryService() {
             controller: MediaSession.ControllerInfo,
             isForPlayback: Boolean,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            return handlePlaybackResumption()
+            // Disable automated playback resumption to prevent Android Auto from 
+            // displaying "phantom" playlists from previous sessions or stale caches.
+            return Futures.immediateFailedFuture(UnsupportedOperationException("Manual start required"))
         }
 
-        override fun onAddMediaItems(
-            mediaSession: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            mediaItems: MutableList<MediaItem>,
-        ): ListenableFuture<MutableList<MediaItem>> {
-            val firstItem = mediaItems.firstOrNull()
-            if (firstItem?.mediaId?.startsWith("PLAYLIST|") == true) {
-                val path = firstItem.mediaId.substringAfter("PLAYLIST|")
-                startPlaylist(path)
-                return Futures.immediateFuture(mutableListOf()) // Playback handled by startPlaylist
-            }
-            return super.onAddMediaItems(mediaSession, controller, mediaItems)
-        }
     }
 
     override fun onDestroy() {

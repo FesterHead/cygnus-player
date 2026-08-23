@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.Player
 
 /**
  * Receiver for the [AudioManager.ACTION_AUDIO_BECOMING_NOISY] intent.
@@ -13,11 +13,11 @@ import androidx.media3.exoplayer.ExoPlayer
  * are unplugged or Bluetooth disconnects) to prevent audio from leaking through 
  * the device speakers.
  *
- * @param player The [ExoPlayer] instance to pause.
+ * @param player The [Player] instance to pause.
  * @param onNoisy Callback triggered when a noisy event occurs.
  */
 class BecomingNoisyReceiver(
-    private val player: ExoPlayer,
+    private val player: Player,
     private val onNoisy: () -> Unit
 ) : BroadcastReceiver() {
 

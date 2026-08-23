@@ -27,7 +27,7 @@ android {
         if (versionPropsFile.exists()) {
             versionProps.load(FileInputStream(versionPropsFile))
         }
-        
+
         versionCode = versionProps.getProperty("VERSION_CODE", "1").toInt()
         versionName = versionProps.getProperty("VERSION_NAME", "1.0.0")
 

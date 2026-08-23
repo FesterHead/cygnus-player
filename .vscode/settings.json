@@ -1,4 +1,14 @@
 {
   "java.configuration.updateBuildConfiguration": "automatic",
-  "markdownlint.ignorePath": ".markdownlintignore"
+  "markdownlint.ignorePath": ".markdownlintignore",
+  "java.jdt.ls.java.home": "C:\\Program Files\\Amazon Corretto\\jdk21.0.12_9",
+  "java.import.gradle.java.home": "C:\\Program Files\\Amazon Corretto\\jdk21.0.12_9",
+  "gradle.java.home": "C:\\Program Files\\Amazon Corretto\\jdk21.0.12_9",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "C:\\Program Files\\Amazon Corretto\\jdk21.0.12_9",
+      "default": true
+    }
+  ]
 }

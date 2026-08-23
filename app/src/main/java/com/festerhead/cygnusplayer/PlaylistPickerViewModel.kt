@@ -90,7 +90,14 @@ class PlaylistPickerViewModel(
         val prefs = app.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
         val controller = if (mediaControllerFuture?.isDone == true) mediaControllerFuture?.get() else null
         val extrasPath = controller?.currentMediaItem?.mediaMetadata?.extras?.getString(CygnusPlaybackService.EXTRA_ACTIVE_PLAYLIST_PATH)
-        val path = extrasPath ?: prefs.getString("active_playlist_path", null)
+        val rawPath = extrasPath ?: prefs.getString("active_playlist_path", null)
+        
+        // Sanitize path to prevent displaying corrupted object toString() data in the UI
+        val path = if (rawPath != null && !rawPath.contains("PlaylistStateEntity") && !rawPath.contains("lastQueueId=")) {
+            rawPath
+        } else {
+            null
+        }
         
         if (path != null) {
             _uiState.update { state ->
@@ -111,7 +118,9 @@ class PlaylistPickerViewModel(
     fun loadSettings(context: Context) {
         val prefs = context.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
         val root = prefs.getString("library_root", null)
-        val activePath = prefs.getString("active_playlist_path", null) ?: _uiState.value.activePlaylistPath
+        val rawActivePath = prefs.getString("active_playlist_path", null) ?: _uiState.value.activePlaylistPath
+        val activePath = if (rawActivePath != null && !rawActivePath.contains("PlaylistStateEntity")) rawActivePath else null
+
         _uiState.update { state ->
             val sorted = sortHistory(state.history, activePath)
             state.copy(
@@ -127,7 +136,9 @@ class PlaylistPickerViewModel(
             _uiState.update { it.copy(isLoading = true) }
             val history = playlistStateDao.getAllStates()
             val prefs = getApplication<android.app.Application>().getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
-            val activePath = prefs.getString("active_playlist_path", null) ?: _uiState.value.activePlaylistPath
+            val rawActivePath = prefs.getString("active_playlist_path", null) ?: _uiState.value.activePlaylistPath
+            val activePath = if (rawActivePath != null && !rawActivePath.contains("PlaylistStateEntity")) rawActivePath else null
+            
             val sorted = sortHistory(history, activePath)
             _uiState.update { it.copy(history = sorted, activePlaylistPath = activePath, isLoading = false) }
             syncActivePlaylistWithService() // Re-sync in case history loaded after controller
@@ -172,7 +183,7 @@ class PlaylistPickerViewModel(
             }
 
             val prefs = context.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
-            prefs.edit().putString("active_playlist_path", path).apply()
+            prefs.edit { putString("active_playlist_path", path) }
 
             if (uiState.value.activePlaylistPath == path) {
                 // Already playing this playlist, just navigate
@@ -272,7 +283,7 @@ class PlaylistPickerViewModel(
             // If we deleted the active playlist, clear it from UI and prefs
             if (uiState.value.activePlaylistPath == state.m3uPath) {
                 val prefs = context.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
-                prefs.edit().remove("active_playlist_path").apply()
+                prefs.edit { remove("active_playlist_path") }
                 _uiState.update { it.copy(activePlaylistPath = null) }
             }
 
