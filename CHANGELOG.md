@@ -23,7 +23,7 @@ Release policy:
 
 ### Changed
 
-- Refactored PowerShell aliases (`ctest`, `crun`, `cdebug`, `cauto`) to v1.5, implementing full environment sanitization (unsetting `GRADLE_HOME`/`JAVA_HOME`) and background process management for the Desktop Head Unit (DHU).
+- Refactored PowerShell aliases (`ctest`, `crun`, `cdebug`, `cauto`) to v1.5, updating `ctest` to run the full test suite (`./gradlew test connectedDebugAndroidTest`), implementing environment sanitization (unsetting `GRADLE_HOME`/`JAVA_HOME`), and adding process management for the Desktop Head Unit (DHU).
 - Refactored `SharedPreferences` usage in `PlaylistPickerViewModel` and `CygnusPlaybackService` to use modern idiomatic Kotlin KTX `edit { ... }` blocks, resolving static analysis warnings.
 - Hardened ReplayGain parsing in `Media3MetadataExtractor` to handle variations in TXXX tag description whitespace and `dB` unit formatting.
 - Refined playlist file picker in `PlaylistPickerScreen` to specifically filter for M3U and M3U8 MIME types.

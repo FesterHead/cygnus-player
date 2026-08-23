@@ -192,7 +192,7 @@ Replace `"44201JEKB09382"` with your physical device's serial number, or pass `"
 Add these helper functions to your PowerShell `$PROFILE`:
 
 ```powershell
-# Cygnus Player Development Aliases (v1.2 - Sanitized & Multi-device)
+# Cygnus Player Development Aliases (v1.5 - Sanitized & Multi-device)
 # Usage: crun (defaults to phone) or crun emu
 
 function ctest {
@@ -207,7 +207,7 @@ function ctest {
     adb -s $target uninstall com.festerhead.cygnusplayer
     try {
         $env:ANDROID_SERIAL = $target
-        ./gradlew connectedDebugAndroidTest --no-configuration-cache
+        ./gradlew test connectedDebugAndroidTest --no-configuration-cache
     } finally {
         $env:ANDROID_SERIAL = $null
     }

@@ -529,7 +529,7 @@ class CygnusPlaybackService : MediaLibraryService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaLibrarySession
 
-    private class MediaLibraryCallback : MediaLibrarySession.Callback {
+    internal class MediaLibraryCallback : MediaLibrarySession.Callback {
         override fun onConnect(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
