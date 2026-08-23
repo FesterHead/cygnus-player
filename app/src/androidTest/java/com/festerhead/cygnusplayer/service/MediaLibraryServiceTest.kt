@@ -65,48 +65,32 @@ class MediaLibraryServiceTest {
         
         val rootItem = rootResult.value
         assertTrue("Root result should be success", rootResult.resultCode == LibraryResult.RESULT_SUCCESS)
-        assertEquals("RECENT_ROOT", rootItem?.mediaId)
-        assertEquals("Recent Playlists", rootItem?.mediaMetadata?.title)
+        assertEquals("CYGNUS_MINIMALIST_ROOT", rootItem?.mediaId)
+        assertTrue("Root should not be browsable", rootItem?.mediaMetadata?.isBrowsable == false)
     }
 
     @Test
-    fun testGetChildrenReturnsPlaylistHistory() = runBlocking {
+    fun testGetChildrenReturnsEmptyList() = runBlocking {
         val app = context.applicationContext as CygnusApplication
         val dao = app.database.playlistStateDao()
         
-        // 1. Setup mock history in the database
+        // 1. Setup mock history in the database to ensure it doesn't leak into browsing
         val mockPlaylist1 = PlaylistStateEntity(
             m3uPath = "/music/rush.m3u8",
             lastQueueId = 1L,
             shuffleMode = ShuffleMode.SEQUENTIAL,
             lastOpened = System.currentTimeMillis(),
         )
-        val mockPlaylist2 = PlaylistStateEntity(
-            m3uPath = "/music/yes.m3u8",
-            lastQueueId = 2L,
-            shuffleMode = ShuffleMode.SEQUENTIAL,
-            lastOpened = System.currentTimeMillis() - 1000,
-        )
-        
         dao.saveState(mockPlaylist1)
-        dao.saveState(mockPlaylist2)
 
-        // 2. Fetch children for the "RECENT_ROOT" node
+        // 2. Fetch children for the "EMPTY_ROOT" node
         val childrenResult = withContext(Dispatchers.Main) {
-            browser.getChildren("RECENT_ROOT", 0, 100, null).await()
+            browser.getChildren("EMPTY_ROOT", 0, 100, null).await()
         }
         val children = childrenResult.value ?: emptyList()
 
-        // 3. Verify mapping
-        assertTrue("Should have at least 2 children", children.size >= 2)
-        
-        val titles = children.map { it.mediaMetadata.title.toString() }
-        assertTrue("Rush playlist should be in the list", titles.contains("rush.m3u8"))
-        assertTrue("Yes playlist should be in the list", titles.contains("yes.m3u8"))
-        
-        // Verify mediaId format (PLAYLIST|path)
-        val firstChild = children.first()
-        assertTrue("MediaId should start with PLAYLIST|", firstChild.mediaId.startsWith("PLAYLIST|"))
+        // 3. Verify mapping is empty (Minimalism enforced)
+        assertTrue("Children list should be empty to enforce phone-first workflow", children.isEmpty())
     }
 
     @Test

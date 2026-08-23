@@ -9,9 +9,9 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 - **No Automated Git Operations:** The AI Agent is strictly prohibited from executing `git commit` or `git push`.
 - **Incremental Changes:** Work will be broken down into small, logical increments. The Agent will pause after each increment to allow the user to review, commit, and push via their preferred IDE interface (such as Antigravity IDE or Android Studio).
 - **Branching Strategy:** All feature development and AI-assisted coding must target the `develop` branch. Pull requests from `develop` to `main` are used to trigger signed Release builds via GitHub Actions.
-- **Versioning Strategy:** The `version.properties` file in the project root is the source of truth for the app's version. To avoid `BuildConfig` instability in experimental environments, a manual `VersionInfo.kt` object must also be maintained in sync with this file. Before any code is merged into `main` for a release, the AI Agent must verify and update `VERSION_NAME` and `VERSION_CODE` in both `version.properties` and `app/src/main/java/com/festerhead/cygnusplayer/VersionInfo.kt`. The GitHub Action will use `version.properties` to automatically publish a public Release.
+- **Versioning Strategy:** The `version.properties` file in the project root is the source of truth for the app's version. To avoid `BuildConfig` instability in experimental environments, a manual `VersionInfo.kt` object must also be maintained in sync with this file. Before any code is merged into `main` for a release, the AI Agent must verify and update `VERSION_NAME` and `VERSION_CODE` across all three locations: `version.properties`, `app/src/main/java/com/festerhead/cygnusplayer/VersionInfo.kt`, and the code block examples in `README.md`. The GitHub Action will use `version.properties` to automatically publish a public Release.
 - **Pre-PR Branch Sync Protocol:** Before opening a pull request from `develop` to `main` for a new release, `main` must be merged into `develop` (`git checkout develop; git merge main`) to ensure `develop` is up-to-date with `main` before pushing. This prevents GitHub from requiring a secondary "Update branch" merge commit and ensures a single PR build runs.
-- **Static Analysis:** The Agent must run `analyze_file` (IDE Inspections) on every modified file to identify and resolve unused code, deprecations, and style issues before task completion.
+- **Static Analysis & Inspection:** All edited files must be analyzed for static analysis errors and warnings (using IDE inspections, linters, or compiler checks), and all identified errors or warnings must be corrected before completing the task.
 - **Documentation Standards:** Every new class, interface, method, and function must include proper KDoc documentation. KDoc must clearly explain the purpose, parameters (`@param`), and return values (`@return`). For Room entities, explain the role of each column.
 - **AI Commit Messages:** The user will utilize their preferred IDE's AI-generated commit message feature (such as Antigravity IDE or Android Studio).
 
@@ -51,7 +51,7 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 
 - **Changelog Maintenance:** Maintain `CHANGELOG.md` according to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Ensure the version exactly matches `VERSION_NAME` in `version.properties`. Mint the numbered release heading before opening a pull request to `main`. When minting a new release, you MUST explicitly ask the user whether to increment the MAJOR, MINOR, or PATCH version number before finalizing the file changes.
 
-- **README Maintenance:** Ensure the root `README.md` is updated to reflect current features, tech stack changes, and roadmap status.
+- **README Maintenance:** Ensure the root `README.md` is updated to reflect current features, tech stack changes, roadmap status, and that example version code blocks in `README.md` match `VERSION_NAME` and `VERSION_CODE`.
 
 # Custom Architecture Requirements
 

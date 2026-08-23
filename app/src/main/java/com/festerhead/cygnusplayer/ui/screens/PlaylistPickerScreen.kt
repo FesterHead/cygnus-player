@@ -101,7 +101,15 @@ fun PlaylistPickerScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    fileLauncher.launch(arrayOf("*/*"))
+                    // Filter for M3U/M3U8 playlist MIME types
+                    fileLauncher.launch(
+                        arrayOf(
+                            "audio/x-mpegurl",
+                            "audio/mpegurl",
+                            "application/x-mpegurl",
+                            "application/vnd.apple.mpegurl",
+                        ),
+                    )
                 },
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary,
@@ -121,7 +129,7 @@ fun PlaylistPickerScreen(
                     .statusBarsPadding()
                     .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = "Cygnus Player",
@@ -134,7 +142,7 @@ fun PlaylistPickerScreen(
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -159,9 +167,13 @@ fun PlaylistPickerScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 items(uiState.history) { state ->
-                    val isActive = uiState.activePlaylistPath != null && (
-                        state.m3uPath == uiState.activePlaylistPath ||
-                        try { android.net.Uri.decode(state.m3uPath) == android.net.Uri.decode(uiState.activePlaylistPath) } catch (_: Exception) { false }
+                    val isActive = (uiState.activePlaylistPath != null) && (
+                        (state.m3uPath == uiState.activePlaylistPath) ||
+                        (try {
+                            android.net.Uri.decode(state.m3uPath) == android.net.Uri.decode(uiState.activePlaylistPath)
+                        } catch (_: Exception) {
+                            false
+                        })
                     )
                     PlaylistHistoryItem(
                         state = state,

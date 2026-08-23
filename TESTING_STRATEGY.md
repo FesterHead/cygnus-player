@@ -36,13 +36,18 @@ To achieve **Zero-Manual-Discovery** of bugs, Cygnus Player employs a rigorous m
   - `ComposeContentTestRule` is used in **instrumented tests** (`app/src/androidTest`) to verify that UI nodes respond correctly to state changes (e.g., history list rendering and Snackbar visibility).
   - Test for high-contrast accessibility labels.
 
-## 4. Media Playback (Media3)
+## 4. Media Playback & Android Auto (Media3)
 
-- **Target:** `MediaSessionService`, ExoPlayer state transitions, Audio Focus handling.
-- **Frameworks:** Robolectric, Media3 Test Utilities.
+- **Target:** `CygnusPlaybackService`, `MediaLibraryService`, ExoPlayer state transitions, Audio Focus handling, and Android Auto head unit browsing.
+- **Frameworks:** Robolectric, Media3 Test Utilities, Android Auto Desktop Head Unit (DHU).
 - **Approach:**
-  - Simulate `BECOMING_NOISY` and phone call interruptions to verify automatic pausing.
-  - Verify that `MediaMetadata` is updated accurately on every track transition for Scrobbler compatibility.
+  - **Automated Tests:** Verify service intent filters (`MediaLibraryService`, `MediaSessionService`, `MediaBrowserService`) and `MediaLibraryCallback.onGetLibraryRoot` via Robolectric.
+  - **Interruption Handling:** Simulate `BECOMING_NOISY` and phone call interruptions to verify automatic pausing.
+  - **Scrobbling Metadata:** Verify that `MediaMetadata` is updated accurately on every track transition for Scrobbler compatibility.
+  - **Local Head Unit Testing (DHU):** Test car UI interaction using Google's Desktop Head Unit emulator:
+    1. Start Head Unit Server in Android Auto settings on phone (**⋮** -> **Start head unit server**).
+    2. Forward ADB port: `adb forward tcp:5277 tcp:5277`
+    3. Launch DHU: `& "$env:LOCALAPPDATA\Android\Sdk\extras\google\auto\desktop-head-unit.exe"`
 
 ## 5. Continuous Validation
 

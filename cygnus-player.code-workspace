@@ -5,6 +5,9 @@
 		}
 	],
 	"settings": {
-		"java.configuration.updateBuildConfiguration": "automatic"
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"java.jdt.ls.java.home": "C:\\Program Files\\Amazon Corretto\\jdk21.0.12_9",
+		"java.import.gradle.java.home": "C:\\Program Files\\Amazon Corretto\\jdk21.0.12_9",
+		"gradle.java.home": "C:\\Program Files\\Amazon Corretto\\jdk21.0.12_9"
 	}
 }

@@ -66,7 +66,7 @@ class Media3MetadataExtractor(private val context: Context) : MetadataExtractor 
                     when (val entry = metadata[j]) {
                         is TextInformationFrame -> {
                             if ((entry.id == "TXXX") || (entry.id == "TXX")) {
-                                val desc = entry.description?.lowercase() ?: ""
+                                val desc = entry.description?.lowercase()?.trim() ?: ""
                                 val value = entry.values.firstOrNull()
                                 when (desc) {
                                     "replaygain_track_gain" -> trackGain = trackGain ?: parseGain(value)
@@ -120,9 +120,11 @@ class Media3MetadataExtractor(private val context: Context) : MetadataExtractor 
     }
 
     /**
-     * Parses gain strings like "-8.45 dB" into a Float.
+     * Parses gain strings like "-8.45 dB" or "-10.56dB" into a Float.
      */
     private fun parseGain(gainString: String?): Float? {
-        return gainString?.replace(" dB", "", ignoreCase = true)?.toFloatOrNull()
+        if (gainString.isNullOrBlank()) return null
+        return gainString.replace("dB", "", ignoreCase = true).trim().toFloatOrNull()
     }
 }
+

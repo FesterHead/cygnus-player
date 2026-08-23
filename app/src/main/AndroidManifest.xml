@@ -39,11 +39,9 @@
             android:exported="true"
             android:foregroundServiceType="mediaPlayback"
             tools:ignore="ExportedService">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_AWARD_FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK"
-                android:value="true" />
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaLibraryService" />
+                <action android:name="androidx.media3.session.MediaSessionService" />
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
@@ -51,6 +49,9 @@
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
+        <meta-data
+            android:name="com.google.android.gms.car.notification.SmallIcon"
+            android:resource="@drawable/ic_launcher_foreground" />
 
         <receiver
             android:name=".ui.widget.CygnusWidgetReceiver"
