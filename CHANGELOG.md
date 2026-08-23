@@ -36,6 +36,7 @@ Release policy:
 - Added path sanitization in `PlaylistPickerViewModel` to prevent corrupted object `toString()` metadata from leaking into the UI.
 - Resolved Android Auto app recognition issue ([#7](https://github.com/FesterHead/cygnus-player/issues/7)) by declaring `com.google.android.gms.car.notification.SmallIcon` metadata, adding `androidx.media3.session.MediaSessionService` intent filter action to `CygnusPlaybackService`, and cleaning up invalid manifest properties.
 - Fixed string interpolation bug in `CygnusPlaybackService` library item generation that caused playback failures in Android Auto.
+- Removed hardcoded local Windows JDK path (`org.gradle.java.home`) from `gradle.properties` to fix GitHub Actions CI build failures on Linux runners.
 
 ## [1.0.4] - 2026-08-11
 
