@@ -120,13 +120,30 @@ class CygnusPlaybackService : MediaLibraryService() {
                     .build(),
                 true,
             )
-            .setHandleAudioBecomingNoisy(true)
             .build()
 
         // Wrap ExoPlayer in a ForwardingPlayer that denies all navigation commands.
         // This ensures that Android Auto and other system controllers hide the
         // Next, Previous, and Seek buttons entirely to align with the "Immutable Journey" philosophy.
         player = object : ForwardingPlayer(exoPlayer) {
+            override fun play() {
+                pausedByNoisy = false
+                if (mediaItemCount == 0) {
+                    val prefs = getSharedPreferences("cygnus_prefs", MODE_PRIVATE)
+                    val activePath = prefs.getString("active_playlist_path", null)
+                    if (!activePath.isNullOrEmpty()) {
+                        startPlaylist(activePath, autoPlay = true)
+                        return
+                    }
+                }
+                super.play()
+            }
+
+            override fun pause() {
+                pausedByNoisy = false
+                super.pause()
+            }
+
             override fun getAvailableCommands(): Player.Commands {
                 return super.getAvailableCommands().buildUpon()
                     .remove(COMMAND_SEEK_TO_NEXT)
@@ -161,6 +178,9 @@ class CygnusPlaybackService : MediaLibraryService() {
         player!!.addListener(
             object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    if (!isPlaying) {
+                        persistPlaybackState()
+                    }
                     updateWidgetState()
                 }
 
@@ -209,7 +229,7 @@ class CygnusPlaybackService : MediaLibraryService() {
         // Register Widget Toggle Receiver
         registerReceiver(
             WidgetToggleReceiver(),
-            IntentFilter("com.festerhead.cygnusplayer.TOGGLE_PLAY_PAUSE"),
+            IntentFilter(ACTION_TOGGLE_PLAY_PAUSE),
             RECEIVER_NOT_EXPORTED,
         )
 
@@ -219,6 +239,9 @@ class CygnusPlaybackService : MediaLibraryService() {
             IntentFilter(CygnusWidgetReceiver.ACTION_REQUEST_WIDGET_UPDATE),
             RECEIVER_NOT_EXPORTED,
         )
+
+        // Automatically restore active playlist state if previously configured
+        restoreActivePlaylistState(autoPlay = false)
     }
 
     private fun updateWidgetState() {
@@ -261,7 +284,7 @@ class CygnusPlaybackService : MediaLibraryService() {
 
     inner class WidgetToggleReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "com.festerhead.cygnusplayer.TOGGLE_PLAY_PAUSE") {
+            if (intent?.action == ACTION_TOGGLE_PLAY_PAUSE) {
                 player?.let {
                     if (it.isPlaying) it.pause() else it.play()
                 }
@@ -294,18 +317,45 @@ class CygnusPlaybackService : MediaLibraryService() {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
         )
 
+        if (intent?.action == ACTION_TOGGLE_PLAY_PAUSE) {
+            val p = player
+            if (p != null) {
+                if (p.isPlaying) p.pause() else p.play()
+            }
+        }
+
         intent?.getStringExtra(EXTRA_PLAYLIST_PATH)?.let {
-            startPlaylist(it)
+            startPlaylist(it, autoPlay = true)
         }
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    /**
+     * Attempts to restore the active playlist from persistent preferences and database.
+     *
+     * @param autoPlay Whether playback should immediately commence after restoring state.
+     */
+    private fun restoreActivePlaylistState(autoPlay: Boolean = false) {
+        val prefs = getSharedPreferences("cygnus_prefs", MODE_PRIVATE)
+        val activePath = prefs.getString("active_playlist_path", null)
+        if (!activePath.isNullOrEmpty()) {
+            startPlaylist(activePath, autoPlay = autoPlay)
+        }
     }
 
     /**
      * Initializes and begins playback for the specified playlist path.
      *
      * @param path The M3U file path or URI string to load into the queue.
+     * @param autoPlay Whether to begin playback immediately once prepared.
      */
-    private fun startPlaylist(path: String) {
+    private fun startPlaylist(path: String, autoPlay: Boolean = true) {
+        if ((currentPlaylistPath == path) && ((player?.mediaItemCount ?: 0) > 0)) {
+            if (autoPlay && (player?.isPlaying == false)) {
+                player?.play()
+            }
+            return
+        }
 
         if ((currentPlaylistPath == path) && isInitializing) return
 
@@ -318,14 +368,13 @@ class CygnusPlaybackService : MediaLibraryService() {
         }
         isInitializing = true
 
-
         serviceScope.launch {
             try {
                 val updatedState = playlistRepository?.loadPlaylist(path)
                 if (updatedState != null) {
                     currentShuffleMode = updatedState.shuffleMode
-                    queueController?.initialize(updatedState.mapping!!, updatedState.lastQueueId)
-                    initializeSlidingWindow(updatedState.lastPositionMs)
+                    queueController?.initialize(updatedState.mapping ?: longArrayOf(), updatedState.lastQueueId)
+                    setupSlidingWindow(updatedState.lastPositionMs, autoPlay = autoPlay)
                     updateWidgetState()
                     val app = application as CygnusApplication
                     app.database.playlistStateDao().saveState(
@@ -336,7 +385,6 @@ class CygnusPlaybackService : MediaLibraryService() {
                 isInitializing = false
             }
         }
-
     }
 
     private fun persistPlaybackState() {
@@ -358,21 +406,28 @@ class CygnusPlaybackService : MediaLibraryService() {
         }
     }
 
-    private fun initializeSlidingWindow(startPositionMs: Long = 0L) {
-        serviceScope.launch {
-            val window = queueController?.getWindowData() ?: return@launch
+    /**
+     * Sets up the 3-track sliding window in ExoPlayer and prepares playback.
+     *
+     * @param startPositionMs Playback offset in milliseconds to seek into the initial track.
+     * @param autoPlay Whether to immediately call [Player.play] after preparation.
+     */
+    private suspend fun setupSlidingWindow(startPositionMs: Long = 0L, autoPlay: Boolean = true) {
+        val window = queueController?.getWindowData() ?: return
 
-            val mediaItems = listOfNotNull(window.prev, window.current, window.next).map { data ->
-                createMediaItem(data)
-            }
+        val mediaItems = listOfNotNull(window.prev, window.current, window.next).map { data ->
+            createMediaItem(data)
+        }
 
-            player?.setMediaItems(mediaItems)
+        val p = player ?: return
+        p.setMediaItems(mediaItems)
 
-            // Seek to current (index 0 if no prev, index 1 if prev exists)
-            val startIndex = if (window.prev != null) 1 else 0
-            player?.seekTo(startIndex, startPositionMs)
-            player?.prepare()
-            player?.play()
+        // Seek to current (index 0 if no prev, index 1 if prev exists)
+        val startIndex = if (window.prev != null) 1 else 0
+        p.seekTo(startIndex, startPositionMs)
+        p.prepare()
+        if (autoPlay) {
+            p.play()
         }
     }
 
@@ -605,6 +660,7 @@ class CygnusPlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        persistPlaybackState()
         serviceJob.cancel()
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
@@ -623,5 +679,6 @@ class CygnusPlaybackService : MediaLibraryService() {
     companion object {
         const val EXTRA_PLAYLIST_PATH = "extra_playlist_path"
         const val EXTRA_ACTIVE_PLAYLIST_PATH = "extra_active_playlist_path"
+        const val ACTION_TOGGLE_PLAY_PAUSE = "com.festerhead.cygnusplayer.TOGGLE_PLAY_PAUSE"
     }
 }

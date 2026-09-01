@@ -65,4 +65,55 @@ class CygnusPlaybackServiceUnitTest {
         assertFalse("Player commands must NOT contain COMMAND_SEEK_TO_PREVIOUS", playerCommands.contains(Player.COMMAND_SEEK_TO_PREVIOUS))
         assertFalse("Player commands must NOT contain COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM", playerCommands.contains(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM))
     }
+
+    /**
+     * Verifies that [BecomingNoisyReceiver] pauses playback and triggers the callback
+     * when [android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY] is broadcast.
+     */
+    @Test
+    fun testBecomingNoisyReceiver_pausesPlayerOnBecomingNoisy() {
+        val mockPlayer = mockk<Player>(relaxed = true)
+        var noisyTriggered = false
+        val receiver = BecomingNoisyReceiver(mockPlayer) {
+            noisyTriggered = true
+        }
+
+        val context = org.robolectric.RuntimeEnvironment.getApplication()
+        val intent = android.content.Intent(android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+
+        receiver.onReceive(context, intent)
+
+        io.mockk.verify(exactly = 1) { mockPlayer.pause() }
+        assertTrue("onNoisy callback must be triggered", noisyTriggered)
+    }
+
+    /**
+     * Verifies that [BecomingNoisyReceiver] ignores unrelated broadcast actions.
+     */
+    @Test
+    fun testBecomingNoisyReceiver_ignoresUnrelatedAction() {
+        val mockPlayer = mockk<Player>(relaxed = true)
+        var noisyTriggered = false
+        val receiver = BecomingNoisyReceiver(mockPlayer) {
+            noisyTriggered = true
+        }
+
+        val context = org.robolectric.RuntimeEnvironment.getApplication()
+        val intent = android.content.Intent("android.intent.action.BATTERY_LOW")
+
+        receiver.onReceive(context, intent)
+
+        io.mockk.verify(exactly = 0) { mockPlayer.pause() }
+        assertFalse("onNoisy callback must NOT be triggered on unrelated action", noisyTriggered)
+    }
+
+    /**
+     * Verifies that [CygnusPlaybackService.ACTION_TOGGLE_PLAY_PAUSE] matches expected broadcast action.
+     */
+    @Test
+    fun testServiceConstants() {
+        assertEquals("com.festerhead.cygnusplayer.TOGGLE_PLAY_PAUSE", CygnusPlaybackService.ACTION_TOGGLE_PLAY_PAUSE)
+        assertEquals("extra_playlist_path", CygnusPlaybackService.EXTRA_PLAYLIST_PATH)
+        assertEquals("extra_active_playlist_path", CygnusPlaybackService.EXTRA_ACTIVE_PLAYLIST_PATH)
+    }
 }

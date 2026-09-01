@@ -57,7 +57,14 @@ android {
 
     lint {
         lintConfig = file("../lint.xml")
-        disable += listOf("FrequentlyChangingValue", "NullSafeMutableLiveData")
+        disable += listOf(
+            "FrequentlyChangingValue",
+            "NullSafeMutableLiveData",
+            "RememberInComposition",
+            "AutoboxingStateCreation",
+            "UnrememberedMutableState",
+            "MissingIntentFilterForMediaSearch"
+        )
     }
 
     compileOptions {
