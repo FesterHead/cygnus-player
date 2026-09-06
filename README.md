@@ -1,5 +1,14 @@
 # Cygnus Player
 
+[![GitHub Release](https://img.shields.io/github/v/release/FesterHead/cygnus-player?style=flat-square&color=AB9DF2&labelColor=221F22&logo=github)](https://github.com/FesterHead/cygnus-player/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/FesterHead/cygnus-player/total?style=flat-square&color=FC9867&labelColor=221F22&logo=github)](https://github.com/FesterHead/cygnus-player/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/FesterHead/cygnus-player/pr-build.yml?branch=main&style=flat-square&color=78DCE8&labelColor=221F22&logo=githubactions&logoColor=white)](https://github.com/FesterHead/cygnus-player/actions)
+[![Android](https://img.shields.io/badge/Android-16%20(API%2036)-78DCE8?style=flat-square&labelColor=221F22&logo=android&logoColor=white)](https://developer.android.com)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat-square&labelColor=221F22&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?style=flat-square&labelColor=221F22&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Engine](https://img.shields.io/badge/Engine-Media3%20ExoPlayer-AB9DF2?style=flat-square&labelColor=221F22)](https://developer.android.com/media/media3)
+[![License](https://img.shields.io/github/license/FesterHead/cygnus-player?style=flat-square&color=FFD866&labelColor=221F22)](LICENSE)
+
 Cygnus Player is a minimalist, high-performance local audio player for Android, specifically engineered to handle massive, duplicate-heavy M3U/M3U8 playlists of **MP3 files** with sub-millisecond responsiveness.
 
 Designed for collectors with large libraries, Cygnus Player prioritizes a low memory footprint ($O(1)$ relative to queue size) and absolute sequence integrity.
