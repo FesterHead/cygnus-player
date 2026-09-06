@@ -14,6 +14,24 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-09-05
+
+### Added
+
+- Added `csync` PowerShell alias and documented **Post-Release Branch Sync Protocol** across `README.md`, `AGENTS.md`, and `CONTRIBUTING.md` for post-PR branch synchronization.
+- Added unit tests in `CygnusPlaybackServiceUnitTest` covering `BecomingNoisyReceiver` behavior and service action constants.
+
+### Fixed
+
+- Fixed playback unresponsiveness after Bluetooth disconnects or background idle pauses by automatically restoring active playlist state, sliding window tracks, metadata, and artwork upon `CygnusPlaybackService` creation.
+- Enhanced `ForwardingPlayer.play()` with empty-queue defense to automatically load and resume the active playlist if `mediaItemCount == 0`.
+- Eliminated startup coroutine race condition by converting sliding window initialization into a suspending function.
+- Fixed mid-track playback position loss by persisting playback state to Room DB immediately upon pausing (`onIsPlayingChanged(false)`) and service destruction (`onDestroy`).
+- Fixed ghost auto-resumes by resetting `pausedByNoisy = false` upon any manual play/pause toggle.
+- Updated widget `TogglePlayPauseAction` to invoke `startForegroundService()` directly with `ACTION_TOGGLE_PLAY_PAUSE` to reliably wake dormant service processes.
+- Fixed playlist picker navigation short-circuit in `PlaylistPickerViewModel.onPlaylistClicked` to ensure service start/resumption when tapping any playlist in history.
+- Cleaned up cursor query lifecycle in `MediaStoreResolver` and suppressed false-positive Compose/search lint rules.
+
 ## [1.0.5] - 2026-08-23
 
 ### Added

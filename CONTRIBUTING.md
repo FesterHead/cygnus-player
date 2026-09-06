@@ -36,6 +36,17 @@ If your pull request introduces a new version release:
 4. Update the example code blocks in `README.md` (under GitHub Actions CI/CD versioning section) to reflect the new `VERSION_NAME` and `VERSION_CODE`.
 5. Update `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Mint the numbered release heading before opening the PR.
 
+### Post-Release Sync Protocol
+
+Once your Pull Request is merged into `main` on GitHub, bring `develop` up to date with `main` (or run `csync`):
+
+```bash
+git fetch origin
+git checkout main && git pull origin main
+git checkout develop && git merge main
+git push origin develop
+```
+
 ---
 
 ## 🏗 Architectural & Coding Guidelines

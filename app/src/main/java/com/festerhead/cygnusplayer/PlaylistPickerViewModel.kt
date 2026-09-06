@@ -185,28 +185,23 @@ class PlaylistPickerViewModel(
             val prefs = context.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
             prefs.edit { putString("active_playlist_path", path) }
 
-            if (uiState.value.activePlaylistPath == path) {
-                // Already playing this playlist, just navigate
-                onNavigateToNowPlaying()
-            } else {
-                // New playlist selection
-                val intent = Intent(context, CygnusPlaybackService::class.java).apply {
-                    putExtra(CygnusPlaybackService.EXTRA_PLAYLIST_PATH, path)
-                }
-                context.startForegroundService(intent)
-                
-                // Optimistically update UI
-                val savedState = uiState.value.history.find { it.m3uPath == path }
-                _uiState.update { state ->
-                    val sorted = sortHistory(state.history, path)
-                    state.copy(
-                        history = sorted,
-                        activePlaylistPath = path,
-                        activeShuffleMode = savedState?.shuffleMode ?: ShuffleMode.SEQUENTIAL
-                    )
-                }
-                onNavigateToNowPlaying()
+            // Ensure the service is running and loads/resumes the playlist
+            val intent = Intent(context, CygnusPlaybackService::class.java).apply {
+                putExtra(CygnusPlaybackService.EXTRA_PLAYLIST_PATH, path)
             }
+            context.startForegroundService(intent)
+
+            // Optimistically update UI
+            val savedState = uiState.value.history.find { it.m3uPath == path }
+            _uiState.update { state ->
+                val sorted = sortHistory(state.history, path)
+                state.copy(
+                    history = sorted,
+                    activePlaylistPath = path,
+                    activeShuffleMode = savedState?.shuffleMode ?: ShuffleMode.SEQUENTIAL,
+                )
+            }
+            onNavigateToNowPlaying()
             loadHistory()
         }
     }

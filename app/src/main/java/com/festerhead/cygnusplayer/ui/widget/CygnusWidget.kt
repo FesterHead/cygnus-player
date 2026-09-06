@@ -39,6 +39,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.festerhead.cygnusplayer.R
 import com.festerhead.cygnusplayer.MainActivity
+import com.festerhead.cygnusplayer.service.CygnusPlaybackService
 import androidx.glance.currentState
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
@@ -174,9 +175,16 @@ class TogglePlayPauseAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        val intent = android.content.Intent("com.festerhead.cygnusplayer.TOGGLE_PLAY_PAUSE").apply {
-            `package` = context.packageName
+        val intent = android.content.Intent(context, CygnusPlaybackService::class.java).apply {
+            action = CygnusPlaybackService.ACTION_TOGGLE_PLAY_PAUSE
         }
-        context.sendBroadcast(intent)
+        try {
+            context.startForegroundService(intent)
+        } catch (_: Exception) {
+            val broadcastIntent = android.content.Intent(CygnusPlaybackService.ACTION_TOGGLE_PLAY_PAUSE).apply {
+                `package` = context.packageName
+            }
+            context.sendBroadcast(broadcastIntent)
+        }
     }
 }
