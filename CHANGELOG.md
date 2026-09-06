@@ -14,6 +14,8 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-09-05
+
 ### Added
 
 - Added `csync` PowerShell alias and documented **Post-Release Branch Sync Protocol** across `README.md`, `AGENTS.md`, and `CONTRIBUTING.md` for post-PR branch synchronization.
