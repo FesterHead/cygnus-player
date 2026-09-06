@@ -17,6 +17,9 @@ Release policy:
 ### Added
 
 - Added GitHub badges to `README.md` for latest release, total downloads, build status, platform target (Android 16 API 36), Kotlin, Jetpack Compose, Media3 ExoPlayer, and license.
+- Added tagged MP3 test asset `impact_moderato_replaygain.mp3` containing `-2.04 dB` track and album ReplayGain tags in ID3v2 TXXX frames.
+- Updated instrumented test `MetadataExtractorFileTest` to verify on-disk ReplayGain tag extraction from `impact_moderato_replaygain.mp3` alongside null-gain fallback testing on untagged `impact_moderato.mp3`.
+- Added unit tests in `ReplayGainControllerTest` verifying context-aware ReplayGain strategy mapping (`TRACK_GAIN` vs `ALBUM_GAIN`), volume multiplier calculations ($10^{\frac{\text{gain}}{20}}$), and fallback handling.
 
 ## [1.0.6] - 2026-09-05
 

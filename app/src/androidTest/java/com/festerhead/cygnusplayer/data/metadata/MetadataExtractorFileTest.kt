@@ -28,35 +28,64 @@ class MetadataExtractorFileTest {
     }
 
     /**
-     * Verifies that the extractor can read standard ID3 tags from impact_moderato.mp3.
-     * Note: ReplayGain is usually not present in royalty-free downloads, so we 
-     * verify its absence or focus on the successful parsing of the file itself.
+     * Verifies that the extractor can read standard ID3 tags from impact_moderato.mp3
+     * and correctly returns null for missing ReplayGain tags.
      */
     @Test
-    fun testRealFileExtraction() = runBlocking {
-        // Stage the resource file to the device's cache directory
-        val testFile = File(context.cacheDir, "impact_moderato.mp3")
+    fun testRealFileExtractionWithoutReplayGain() = runBlocking {
+        val testFile = stageResourceFile("impact_moderato.mp3")
+
+        val result = extractor.extract(testFile)
         
-        val inputStream = javaClass.classLoader?.getResourceAsStream("impact_moderato.mp3")
-            ?: throw IllegalStateException("Resource impact_moderato.mp3 not found")
+        android.util.Log.d("MetadataTest", "Extraction result (no gain): $result")
+
+        // Verify standard tags present in the file
+        assertEquals("Impact Moderato", result.title)
+        assertEquals("Kevin MacLeod", result.artist)
+        org.junit.Assert.assertNull("Track gain should be null when tag is absent", result.trackGain)
+        org.junit.Assert.assertNull("Album gain should be null when tag is absent", result.albumGain)
+        assertNotNull(result)
+    }
+
+    /**
+     * Verifies that the extractor reads both standard ID3 tags and ReplayGain values
+     * (-2.04 dB track and album gain) from impact_moderato_replaygain.mp3.
+     */
+    @Test
+    fun testRealFileExtractionWithReplayGain() = runBlocking {
+        val testFile = stageResourceFile("impact_moderato_replaygain.mp3")
+
+        val result = extractor.extract(testFile)
+        
+        android.util.Log.d("MetadataTest", "Extraction result (with gain): $result")
+
+        // Verify standard tags present in the file
+        assertEquals("Impact Moderato", result.title)
+        assertEquals("Kevin MacLeod", result.artist)
+        
+        // Verify ReplayGain tags
+        assertNotNull("Track gain must not be null", result.trackGain)
+        assertNotNull("Album gain must not be null", result.albumGain)
+        assertEquals(-2.04f, result.trackGain ?: 0f, 0.01f)
+        assertEquals(-2.04f, result.albumGain ?: 0f, 0.01f)
+    }
+
+    /**
+     * Helper to stage a resource file to the application's cache directory for testing.
+     * 
+     * @param resourceName The filename of the resource to copy.
+     * @return The staged [File] in the device's cache directory.
+     */
+    private fun stageResourceFile(resourceName: String): File {
+        val testFile = File(context.cacheDir, resourceName)
+        val inputStream = javaClass.classLoader?.getResourceAsStream(resourceName)
+            ?: throw IllegalStateException("Resource $resourceName not found")
 
         inputStream.use { input ->
             testFile.outputStream().use { output ->
                 input.copyTo(output)
             }
         }
-        
-        android.util.Log.d("MetadataTest", "Staged file size: ${testFile.length()} bytes")
-
-        val result = extractor.extract(testFile)
-        
-        android.util.Log.d("MetadataTest", "Extraction result: $result")
-
-        // Verify standard tags present in the file
-        assertEquals("Impact Moderato", result.title)
-        assertEquals("Kevin MacLeod", result.artist)
-        
-        // Ensure the extractor didn't crash and returned a valid object
-        assertNotNull(result)
+        return testFile
     }
 }
