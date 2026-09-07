@@ -15,6 +15,7 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
 - **Static Analysis & Inspection:** All edited files must be analyzed for static analysis errors and warnings (using IDE inspections, linters, or compiler checks), and all identified errors or warnings must be corrected before completing the task.
 - **Documentation Standards:** Every new class, interface, method, and function must include proper KDoc documentation. KDoc must clearly explain the purpose, parameters (`@param`), and return values (`@return`). For Room entities, explain the role of each column.
 - **AI Commit Messages:** The user will utilize their preferred IDE's AI-generated commit message feature (such as Antigravity IDE or Android Studio).
+- **Markdown Artifact Linting Suppression:** Whenever creating or updating Markdown artifacts (such as `implementation_plan.md`, `walkthrough.md`, or other planning/walkthrough documents), always prepend `<!-- markdownlint-disable -->` on line 1 of the file. This prevents the VS Code markdownlint extension from flagging rule warnings in the Problems panel when these external artifact files are opened in the editor.
 
 ## 2. Automated Testing Strategy
 
