@@ -14,6 +14,8 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-09-07
+
 ### Added
 
 - Added GitHub badges to `README.md` for latest release, total downloads, build status, platform target (Android 16 API 36), Kotlin, Jetpack Compose, Media3 ExoPlayer, and license.
