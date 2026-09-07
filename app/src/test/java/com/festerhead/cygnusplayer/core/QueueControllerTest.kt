@@ -83,6 +83,18 @@ class QueueControllerTest {
         assertEquals(2L, controller.getCurrentQueueId())
     }
 
+    @Test
+    fun testClearQueue() {
+        val mapping = longArrayOf(1L, 2L, 3L)
+        controller.initialize(mapping, 2L)
+        assertEquals("2/3", controller.getPositionString())
+        assertEquals(2L, controller.getCurrentQueueId())
+
+        controller.clear()
+        assertEquals("0/0", controller.getPositionString())
+        assertNull(controller.getCurrentQueueId())
+    }
+
     private fun mockTrack(id: Long) {
         val queueEntry = QueueEntity(queueId = id, trackId = id, filePath = "path/$id", folderPath = "folder", m3uPath = "test.m3u8")
         val track = TrackEntity(trackId = id, filePath = "path/$id", folderPath = "folder")

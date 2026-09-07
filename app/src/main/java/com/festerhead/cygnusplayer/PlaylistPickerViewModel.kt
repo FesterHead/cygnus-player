@@ -268,20 +268,29 @@ class PlaylistPickerViewModel(
 
     fun deleteFromHistory(context: Context, state: PlaylistStateEntity) {
         viewModelScope.launch {
+            val app = context.applicationContext as CygnusApplication
+            val prefs = context.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
+            val currentActivePath = prefs.getString("active_playlist_path", null) ?: uiState.value.activePlaylistPath
+            val isTargetActive = (currentActivePath == state.m3uPath)
+
             // Delete from history state table first
             playlistStateDao.deleteState(state.m3uPath)
             
             // Clear queue and tracks completely via application's PlaylistRepository singleton
-            val app = context.applicationContext as CygnusApplication
             app.playlistRepository.deletePlaylistData(state.m3uPath)
 
-            // If we deleted the active playlist, clear it from UI and prefs
-            if (uiState.value.activePlaylistPath == state.m3uPath) {
-                val prefs = context.getSharedPreferences("cygnus_prefs", Context.MODE_PRIVATE)
+            // If we deleted the active playlist, clear it from UI, prefs, queue, and stop the service
+            if (isTargetActive) {
                 prefs.edit { remove("active_playlist_path") }
                 _uiState.update { it.copy(activePlaylistPath = null) }
-            }
+                app.queueController.clear()
 
+                val stopIntent = Intent(context, CygnusPlaybackService::class.java).apply {
+                    action = CygnusPlaybackService.ACTION_STOP_PLAYBACK
+                    putExtra(CygnusPlaybackService.EXTRA_PLAYLIST_PATH, state.m3uPath)
+                }
+                context.startService(stopIntent)
+            }
 
             loadHistory()
         }

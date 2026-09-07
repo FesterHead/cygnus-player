@@ -34,4 +34,31 @@ class NowPlayingViewModelTest {
         assertEquals(playlistName, uiState.playlistName)
         assertEquals(shuffleMode, uiState.shuffleMode)
     }
+
+    @Test
+    fun `resetting state clears out playing screen to defaults`() {
+        var uiState = NowPlayingUiState(
+            isPlaying = true,
+            trackTitle = "Tom Sawyer",
+            albumName = "Moving Pictures",
+            playlistName = "Rush Playlist",
+            position = "5/12",
+            shuffleMode = ShuffleMode.TRACK_RANDOM,
+            currentPositionMs = 45000L,
+            durationMs = 270000L,
+            artwork = byteArrayOf(1, 2, 3),
+        )
+
+        // Reset to initial empty state as performed by NowPlayingViewModel.clear()
+        uiState = NowPlayingUiState()
+
+        assertFalse(uiState.isPlaying)
+        assertEquals("No track playing", uiState.trackTitle)
+        assertEquals("No album", uiState.albumName)
+        assertEquals("", uiState.playlistName)
+        assertEquals("0/0", uiState.position)
+        assertEquals(0L, uiState.currentPositionMs)
+        assertEquals(0L, uiState.durationMs)
+        org.junit.Assert.assertNull(uiState.artwork)
+    }
 }

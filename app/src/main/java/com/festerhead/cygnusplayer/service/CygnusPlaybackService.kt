@@ -282,6 +282,66 @@ class CygnusPlaybackService : MediaLibraryService() {
         }
     }
 
+    /**
+     * Resets the home screen widget state to default placeholder text and removes cached artwork.
+     */
+    private fun clearWidgetState() {
+        serviceScope.launch(Dispatchers.IO) {
+            val context = this@CygnusPlaybackService
+            val manager = GlanceAppWidgetManager(context)
+            val glanceIds = manager.getGlanceIds(CygnusWidget::class.java)
+
+            // Remove cached artwork file
+            try {
+                val file = File(cacheDir, "current_artwork.png")
+                if (file.exists()) {
+                    file.delete()
+                }
+            } catch (e: Exception) {
+                Log.e("CygnusPlayback", "Failed to delete artwork cache for widget", e)
+            }
+
+            glanceIds.forEach { glanceId ->
+                updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                    prefs.toMutablePreferences().apply {
+                        set(stringPreferencesKey("title"), "No track playing")
+                        set(stringPreferencesKey("artist"), "Unknown Artist")
+                        set(stringPreferencesKey("album"), "Unknown Album")
+                        set(stringPreferencesKey("position"), "0/0")
+                        set(booleanPreferencesKey("is_playing"), false)
+                    }
+                }
+                CygnusWidget().update(context, glanceId)
+            }
+        }
+    }
+
+    /**
+     * Stops active playback, clears player media items and sliding window queue,
+     * removes the active playlist reference, resets widget state, and dismisses foreground notification.
+     */
+    fun stopPlaybackAndClear() {
+        val p = player
+        if (p != null) {
+            p.stop()
+            p.clearMediaItems()
+        }
+        currentPlaylistPath = null
+        pausedByNoisy = false
+        queueController?.clear()
+        val app = application as? CygnusApplication
+        app?.queueController?.clear()
+
+        getSharedPreferences("cygnus_prefs", MODE_PRIVATE).edit {
+            remove("active_playlist_path")
+        }
+
+        clearWidgetState()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(1)
+    }
+
     inner class WidgetToggleReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == ACTION_TOGGLE_PLAY_PAUSE) {
@@ -322,6 +382,14 @@ class CygnusPlaybackService : MediaLibraryService() {
             if (p != null) {
                 if (p.isPlaying) p.pause() else p.play()
             }
+        }
+
+        if (intent?.action == ACTION_STOP_PLAYBACK) {
+            val targetPath = intent.getStringExtra(EXTRA_PLAYLIST_PATH)
+            if (targetPath == null || targetPath == currentPlaylistPath) {
+                stopPlaybackAndClear()
+            }
+            return super.onStartCommand(intent, flags, startId)
         }
 
         intent?.getStringExtra(EXTRA_PLAYLIST_PATH)?.let {
@@ -680,5 +748,6 @@ class CygnusPlaybackService : MediaLibraryService() {
         const val EXTRA_PLAYLIST_PATH = "extra_playlist_path"
         const val EXTRA_ACTIVE_PLAYLIST_PATH = "extra_active_playlist_path"
         const val ACTION_TOGGLE_PLAY_PAUSE = "com.festerhead.cygnusplayer.TOGGLE_PLAY_PAUSE"
+        const val ACTION_STOP_PLAYBACK = "com.festerhead.cygnusplayer.STOP_PLAYBACK"
     }
 }

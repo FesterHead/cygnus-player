@@ -77,7 +77,11 @@ class MainActivity : ComponentActivity() {
                         Screen.NOW_PLAYING -> {
                             val nowPlayingViewModel: NowPlayingViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
                             LaunchedEffect(pickerUiState.activePlaylistPath, pickerUiState.activeShuffleMode) {
-                                val path = pickerUiState.activePlaylistPath ?: return@LaunchedEffect
+                                val path = pickerUiState.activePlaylistPath
+                                if (path == null) {
+                                    nowPlayingViewModel.clear()
+                                    return@LaunchedEffect
+                                }
                                 val decodedPath = try {
                                     android.net.Uri.decode(path)
                                 } catch (_: Exception) {
