@@ -34,6 +34,14 @@ class QueueController(
     }
 
     /**
+     * Clears the current mapping and resets the internal position index.
+     */
+    fun clear() {
+        currentMapping = longArrayOf()
+        currentIndex = -1
+    }
+
+    /**
      * Resolves the [QueueEntity] and [TrackEntity] for the tracks in the sliding window.
      * 
      * @return A [WindowData] containing the metadata for the previous, current, and next tracks.

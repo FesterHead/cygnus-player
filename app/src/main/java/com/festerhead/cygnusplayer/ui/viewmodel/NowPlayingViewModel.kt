@@ -189,6 +189,14 @@ class NowPlayingViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     /**
+     * Clears the current playback state and resets to empty default values.
+     */
+    fun clear() {
+        stopProgressTracking()
+        _uiState.value = NowPlayingUiState()
+    }
+
+    /**
      * Initializes the Now Playing state with the active playlist information.
      */
     fun initialize(playlistName: String, shuffleMode: ShuffleMode) {

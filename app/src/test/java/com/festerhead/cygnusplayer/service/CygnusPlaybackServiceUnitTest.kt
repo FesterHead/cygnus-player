@@ -113,6 +113,7 @@ class CygnusPlaybackServiceUnitTest {
     @Test
     fun testServiceConstants() {
         assertEquals("com.festerhead.cygnusplayer.TOGGLE_PLAY_PAUSE", CygnusPlaybackService.ACTION_TOGGLE_PLAY_PAUSE)
+        assertEquals("com.festerhead.cygnusplayer.STOP_PLAYBACK", CygnusPlaybackService.ACTION_STOP_PLAYBACK)
         assertEquals("extra_playlist_path", CygnusPlaybackService.EXTRA_PLAYLIST_PATH)
         assertEquals("extra_active_playlist_path", CygnusPlaybackService.EXTRA_ACTIVE_PLAYLIST_PATH)
     }
