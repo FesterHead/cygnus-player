@@ -14,6 +14,16 @@ Release policy:
 
 ## [Unreleased]
 
+### Added
+
+- Comprehensive unit tests in `ShuffleEngineTest` covering album shuffle (`RANDOM_FOLDER_SEQUENTIAL`) history buffer behavior: 250-album library validation (`testFolderHistoryBufferWith250Albums`), 24-album boundary resilience (`testFolderHistoryBoundaryAtExactly24Folders`), and sub-24 album buffer-disabled logic (`testFolderHistoryDisabledWhenLessThan24Folders`).
+- Documented queue integrity requirements for `RANDOM_FOLDER_SEQUENTIAL` history handling in `AGENTS.md`.
+
+### Fixed
+
+- Fixed track loss bug in `ShuffleEngine` for `RANDOM_FOLDER_SEQUENTIAL` mode where previously played folders in the history buffer were dropped from the active queue instead of being deferred/appended after fresh folders, preserving full playlist contents across reshuffles while enforcing 24-album separation.
+- Corrected test assertion in `ShuffleEngineTest.testFolderHistoryBufferEnabled` to verify against `takeLast(24)` instead of `take(24)` to accurately match FIFO rolling buffer state.
+
 ## [1.0.7] - 2026-09-07
 
 ### Added

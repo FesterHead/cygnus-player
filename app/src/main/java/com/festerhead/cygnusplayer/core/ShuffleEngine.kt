@@ -81,25 +81,33 @@ class ShuffleEngine(private val random: Random = Random.Default) {
                     null
                 }
 
-                // Filter out recently played folders and the anchor folder
-                val availableFolders = if (effectiveHistorySize > 0) {
-                    allFolders.filterNot { it == anchorFolder || folderHistory.contains(it) }
+                val folderOrder = if (effectiveHistorySize > 0) {
+                    val freshFolders = allFolders.filterNot { it == anchorFolder || folderHistory.contains(it) }.toMutableList()
+                    val historyFolders = allFolders.filter { folderHistory.contains(it) && it != anchorFolder }.toMutableList()
+
+                    if (freshFolders.isEmpty()) {
+                        folderHistory.clear()
+                        freshFolders.addAll(allFolders.filterNot { it == anchorFolder })
+                        historyFolders.clear()
+                    }
+
+                    freshFolders.shuffle(random)
+                    historyFolders.shuffle(random)
+
+                    val combined = freshFolders + historyFolders
+                    if (anchorFolder != null) {
+                        listOf(anchorFolder) + combined
+                    } else {
+                        combined
+                    }
                 } else {
-                    allFolders.filterNot { it == anchorFolder }
-                }.toMutableList()
-
-                if (availableFolders.isEmpty() && allFolders.size > 1) {
-                    availableFolders.addAll(allFolders.filterNot { it == anchorFolder })
-                    folderHistory.clear()
-                }
-
-                availableFolders.shuffle(random)
-
-                // Re-insert anchor folder at the start
-                val folderOrder = if (anchorFolder != null) {
-                    listOf(anchorFolder) + availableFolders
-                } else {
-                    availableFolders
+                    val available = allFolders.filterNot { it == anchorFolder }.toMutableList()
+                    available.shuffle(random)
+                    if (anchorFolder != null) {
+                        listOf(anchorFolder) + available
+                    } else {
+                        available
+                    }
                 }
 
                 // Calculate total size - Forward-Only discards tracks before anchor in the anchorFolder

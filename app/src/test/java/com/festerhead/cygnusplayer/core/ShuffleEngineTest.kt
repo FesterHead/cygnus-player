@@ -139,13 +139,131 @@ class ShuffleEngineTest {
         
         // Populate history
         val mapping1 = engine.generateMapping(ids, ShuffleMode.RANDOM_FOLDER_SEQUENTIAL, folderMap = manyFolders)
-        val historyFrom1 = mapping1.asSequence().take(24).map { "F$it" }.toSet()
+        assertEquals(100, mapping1.size)
+        val historyFrom1 = mapping1.toList().takeLast(24).map { "F$it" }.toSet()
         
         // Next mapping should NOT start with any of the history
         val mapping2 = engine.generateMapping(ids, ShuffleMode.RANDOM_FOLDER_SEQUENTIAL, folderMap = manyFolders)
+        assertEquals(100, mapping2.size)
         val firstFolder2 = "F${mapping2[0]}"
         
         assertTrue("Next shuffle started with a folder from history: $firstFolder2", firstFolder2 !in historyFrom1)
+    }
+
+    /**
+     * Tests that in a realistic library of 250 albums (well above the 24-album limit),
+     * [ShuffleMode.RANDOM_FOLDER_SEQUENTIAL] preserves all albums and tracks, and enforces
+     * that the 24 most recently queued albums from the previous shuffle are not re-selected
+     * among the first 24 albums of the subsequent shuffle.
+     */
+    @Test
+    fun testFolderHistoryBufferWith250Albums() {
+        engine.clearHistory()
+        val albumCount = 250
+        val tracksPerAlbum = 4
+        var nextId = 1L
+        val folderMap = LinkedHashMap<String, LongArray>()
+        for (i in 1..albumCount) {
+            val tracks = LongArray(tracksPerAlbum) { nextId++ }
+            folderMap["Album_$i"] = tracks
+        }
+        val allIds = LongArray(albumCount * tracksPerAlbum) { it.toLong() + 1 }
+
+        // Helper function to extract ordered folder list from track ID sequence
+        val trackToFolder = mutableMapOf<Long, String>()
+        folderMap.forEach { (folder, tracks) ->
+            tracks.forEach { trackToFolder[it] = folder }
+        }
+        fun extractFolderSequence(mapping: LongArray): List<String> {
+            val folderOrder = mutableListOf<String>()
+            mapping.forEach { trackId ->
+                val folder = trackToFolder[trackId] ?: ""
+                if (folderOrder.isEmpty() || folderOrder.last() != folder) {
+                    folderOrder.add(folder)
+                }
+            }
+            return folderOrder
+        }
+
+        // Initial mapping: all 250 albums (1,000 tracks) must be present
+        val mapping1 = engine.generateMapping(allIds, ShuffleMode.RANDOM_FOLDER_SEQUENTIAL, folderMap = folderMap)
+        assertEquals(allIds.size, mapping1.size)
+
+        val foldersFrom1 = extractFolderSequence(mapping1)
+        assertEquals(albumCount, foldersFrom1.size)
+        val last24From1 = foldersFrom1.takeLast(24).toSet()
+        assertEquals(24, last24From1.size)
+
+        // Second mapping (reshuffle): all 250 albums must still be present
+        val mapping2 = engine.generateMapping(allIds, ShuffleMode.RANDOM_FOLDER_SEQUENTIAL, folderMap = folderMap)
+        assertEquals(allIds.size, mapping2.size)
+
+        val foldersFrom2 = extractFolderSequence(mapping2)
+        assertEquals(albumCount, foldersFrom2.size)
+        val first24From2 = foldersFrom2.take(24).toSet()
+        assertEquals(24, first24From2.size)
+
+        // Verify the 24-album separation constraint: none of the last 24 albums appear in the first 24 albums
+        val overlap = last24From1.intersect(first24From2)
+        assertTrue(
+            "Expected 24-album separation, but found overlap between last 24 of mapping1 and first 24 of mapping2: $overlap",
+            overlap.isEmpty(),
+        )
+
+        // Third mapping: verify separation across continuous cycles
+        val last24From2 = foldersFrom2.takeLast(24).toSet()
+        val mapping3 = engine.generateMapping(allIds, ShuffleMode.RANDOM_FOLDER_SEQUENTIAL, folderMap = folderMap)
+        assertEquals(allIds.size, mapping3.size)
+        val foldersFrom3 = extractFolderSequence(mapping3)
+        val first24From3 = foldersFrom3.take(24).toSet()
+        val overlap2 = last24From2.intersect(first24From3)
+        assertTrue(
+            "Expected 24-album separation between mapping2 and mapping3, but found overlap: $overlap2",
+            overlap2.isEmpty(),
+        )
+    }
+
+    /**
+     * Tests that when the total album count is strictly less than 24, the history buffer
+     * size evaluates to 0 per specification, ensuring that all albums are included across
+     * successive shuffles and no albums are restricted by history filtering.
+     */
+    @Test
+    fun testFolderHistoryDisabledWhenLessThan24Folders() {
+        engine.clearHistory()
+        val albumCount = 10
+        val folderMap = (1..albumCount).associateBy({ "Album_$it" }, { longArrayOf(it.toLong()) })
+        val ids = LongArray(albumCount) { it.toLong() + 1 }
+
+        val mapping1 = engine.generateMapping(ids, ShuffleMode.RANDOM_FOLDER_SEQUENTIAL, folderMap = folderMap)
+        assertEquals(albumCount, mapping1.size)
+
+        val mapping2 = engine.generateMapping(ids, ShuffleMode.RANDOM_FOLDER_SEQUENTIAL, folderMap = folderMap)
+        assertEquals(albumCount, mapping2.size)
+        assertEquals(ids.toSet(), mapping1.toSet())
+        assertEquals(ids.toSet(), mapping2.toSet())
+    }
+
+    /**
+     * Tests boundary behavior when the album count is exactly 24.
+     * Verifies that all 24 albums are present on the initial shuffle, and that the fallback
+     * recovery mechanism cleanly repopulates and reshuffles all 24 albums on subsequent runs
+     * without dropping albums or deadlocking.
+     */
+    @Test
+    fun testFolderHistoryBoundaryAtExactly24Folders() {
+        engine.clearHistory()
+        val albumCount = 24
+        val folderMap = (1..albumCount).associateBy({ "Album_$it" }, { longArrayOf(it.toLong()) })
+        val ids = LongArray(albumCount) { it.toLong() + 1 }
+
+        val mapping1 = engine.generateMapping(ids, ShuffleMode.RANDOM_FOLDER_SEQUENTIAL, folderMap = folderMap)
+        assertEquals(albumCount, mapping1.size)
+        assertEquals(ids.toSet(), mapping1.toSet())
+
+        val mapping2 = engine.generateMapping(ids, ShuffleMode.RANDOM_FOLDER_SEQUENTIAL, folderMap = folderMap)
+        assertEquals(albumCount, mapping2.size)
+        assertEquals(ids.toSet(), mapping2.toSet())
     }
 
     /**
