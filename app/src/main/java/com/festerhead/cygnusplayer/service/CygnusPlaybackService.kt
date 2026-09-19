@@ -17,6 +17,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.media3.common.AudioAttributes
 import androidx.annotation.OptIn
+import androidx.annotation.VisibleForTesting
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
@@ -54,6 +55,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 
@@ -67,13 +69,17 @@ import java.io.FileOutputStream
 @OptIn(UnstableApi::class)
 class CygnusPlaybackService : MediaLibraryService() {
 
-    private var player: Player? = null
+    @VisibleForTesting
+    internal var player: Player? = null
     private var mediaLibrarySession: MediaLibrarySession? = null
-    private var queueController: QueueController? = null
-    private var replayGainController: ReplayGainController? = null
+    @VisibleForTesting
+    internal var queueController: QueueController? = null
+    @VisibleForTesting
+    internal var replayGainController: ReplayGainController? = null
     private var playlistRepository: com.festerhead.cygnusplayer.data.PlaylistRepository? = null
 
-    private var currentShuffleMode: ShuffleMode = ShuffleMode.SEQUENTIAL
+    @VisibleForTesting
+    internal var currentShuffleMode: ShuffleMode = ShuffleMode.SEQUENTIAL
     private var currentPlaylistPath: String? = null
     private var isInitializing = false
     private var pausedByNoisy = false
@@ -187,10 +193,15 @@ class CygnusPlaybackService : MediaLibraryService() {
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
                         queueController?.moveNext()
+                        val applied = applyReplayGainSynchronously()
+                        if (!applied) {
+                            applyReplayGain()
+                        }
                         updateSlidingWindow()
                         persistPlaybackState()
+                    } else {
+                        applyReplayGain()
                     }
-                    applyReplayGain()
                     updateWidgetState()
                 }
 
@@ -482,8 +493,22 @@ class CygnusPlaybackService : MediaLibraryService() {
      */
     private suspend fun setupSlidingWindow(startPositionMs: Long = 0L, autoPlay: Boolean = true) {
         val window = queueController?.getWindowData() ?: return
+        val currentData = window.current ?: return
 
-        val mediaItems = listOfNotNull(window.prev, window.current, window.next).map { data ->
+        // 1. Resolve current track's metadata and gain tags upfront if not yet extracted to avoid cold-start volume jump
+        val resolvedCurrentData = resolveInitialTrackMetadata(currentData)
+
+        // 2. Pre-calculate and set ReplayGain volume BEFORE playback begins
+        val gainType = replayGainController?.getRequiredGainType(currentShuffleMode) ?: ReplayGainType.TRACK_GAIN
+        val multiplier = replayGainController?.getVolumeMultiplier(resolvedCurrentData.track, gainType) ?: 1f
+        player?.volume = multiplier
+
+        Log.i(
+            "CygnusPlayback",
+            "INITIAL PLAYBACK: ${resolvedCurrentData.track.filePath} | GainType: $gainType | Multiplier: $multiplier | TrackGain: ${resolvedCurrentData.track.trackGain} | AlbumGain: ${resolvedCurrentData.track.albumGain}",
+        )
+
+        val mediaItems = listOfNotNull(window.prev, resolvedCurrentData, window.next).map { data ->
             createMediaItem(data)
         }
 
@@ -515,6 +540,67 @@ class CygnusPlaybackService : MediaLibraryService() {
         }
     }
 
+    /**
+     * Resolves metadata and ReplayGain tags for the initial track before playback starts.
+     * Ensures cold-start playback begins with the correct volume multiplier.
+     *
+     * @param data The initial track's [QueueController.TrackData].
+     * @return The updated [QueueController.TrackData] with resolved metadata, or original if already resolved.
+     */
+    private suspend fun resolveInitialTrackMetadata(data: QueueController.TrackData): QueueController.TrackData {
+        val isPlaceholder = (data.track.title == data.track.filePath.substringAfterLast("/").substringAfterLast("\\").substringBeforeLast(".")) &&
+            (data.track.artist == "<not found>")
+        val needsGain = (data.track.trackGain == null) && (data.track.albumGain == null)
+
+        if (!isPlaceholder && !needsGain) {
+            return data
+        }
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val app = application as CygnusApplication
+                val playableUriString = resolvePlayableUri(data)
+                val trackUri = playableUriString.toUri()
+                val realMeta = app.playlistRepository.metadataExtractor.extract(trackUri)
+
+                val updatedTrack = data.track.copy(
+                    contentUri = playableUriString,
+                    title = if (isPlaceholder && (realMeta.title != "<not found>")) realMeta.title else data.track.title,
+                    artist = if (isPlaceholder) realMeta.artist else data.track.artist,
+                    album = if (isPlaceholder) realMeta.album else data.track.album,
+                    trackGain = realMeta.trackGain ?: data.track.trackGain,
+                    albumGain = realMeta.albumGain ?: data.track.albumGain,
+                )
+                app.database.trackDao().update(updatedTrack)
+                queueController?.updateTrackInCache(updatedTrack)
+                data.copy(track = updatedTrack)
+            } catch (e: Exception) {
+                Log.e("CygnusPlayback", "Failed to resolve initial track metadata: ${data.track.filePath}", e)
+                data
+            }
+        }
+    }
+
+    /**
+     * Applies ReplayGain volume multiplier synchronously from the in-memory sliding window.
+     * Called on automatic track transitions to eliminate any volume delay or pop at track boundaries.
+     *
+     * @return True if gain was applied from the synchronous cache, false if fallback is required.
+     */
+    @VisibleForTesting
+    internal fun applyReplayGainSynchronously(): Boolean {
+        val currentTrack = queueController?.getCurrentTrackData()?.track ?: return false
+        val gainType = replayGainController?.getRequiredGainType(currentShuffleMode) ?: ReplayGainType.TRACK_GAIN
+        val multiplier = replayGainController?.getVolumeMultiplier(currentTrack, gainType) ?: 1f
+
+        player?.volume = multiplier
+        Log.i(
+            "CygnusPlayback",
+            "SYNCHRONOUS TRANSITION GAIN: ${currentTrack.filePath} | GainType: $gainType | Multiplier: $multiplier | TrackGain: ${currentTrack.trackGain} | AlbumGain: ${currentTrack.albumGain}",
+        )
+        return true
+    }
+
     private fun applyReplayGain() {
         serviceScope.launch {
             val window = queueController?.getWindowData() ?: return@launch
@@ -530,6 +616,53 @@ class CygnusPlaybackService : MediaLibraryService() {
 
             player?.volume = multiplier
         }
+    }
+
+    /**
+     * Resolves the playable URI string (MediaStore or SAF) for a queue track.
+     *
+     * @param data The [QueueController.TrackData] to resolve.
+     * @return A content URI string, or raw file path as fallback.
+     */
+    private fun resolvePlayableUri(data: QueueController.TrackData): String {
+        val cachedUri = data.track.contentUri
+        if (cachedUri != null) {
+            return cachedUri
+        }
+
+        val app = application as CygnusApplication
+        val path = currentPlaylistPath ?: ""
+        val m3uUri = if (path.startsWith("content://") || path.startsWith("file://")) {
+            path.toUri()
+        } else {
+            Uri.fromFile(File(path))
+        }
+        val parentRelativePath = app.playlistRepository.resolveRelativePathFromUri(m3uUri)
+        val fullRelPath = if (parentRelativePath.isEmpty()) data.track.filePath else "$parentRelativePath${data.track.filePath}"
+
+        var contentUri = app.playlistRepository.mediaStoreResolver.resolvePathToUri(fullRelPath)
+
+        if ((contentUri == null) && parentRelativePath.isNotEmpty()) {
+            val cleanRelPath = data.track.filePath.substringAfterLast("/")
+            val alternativePath = if (parentRelativePath.endsWith("/")) "$parentRelativePath$cleanRelPath" else "$parentRelativePath/$cleanRelPath"
+            contentUri = app.playlistRepository.mediaStoreResolver.resolvePathToUri(alternativePath)
+        }
+
+        if (contentUri == null) {
+            val prefs = getSharedPreferences("cygnus_prefs", MODE_PRIVATE)
+            val libraryRootStr = prefs.getString("library_root", null)
+            if (libraryRootStr != null) {
+                val decodedRoot = Uri.decode(libraryRootStr)
+                val treeId = decodedRoot.substringAfter("/tree/").trim()
+                val cleanTrackRel = data.track.filePath.replace("\\", "/")
+                val documentId = "$treeId/$cleanTrackRel"
+                val queryEncodedTreeId = treeId.replace("/", "%2F").replace(":", "%3A").replace(" ", "%20").replace("'", "%27")
+                val queryEncodedDocId = documentId.replace("/", "%2F").replace(":", "%3A").replace(" ", "%20").replace("'", "%27")
+                val constructedUriString = "content://com.android.externalstorage.documents/tree/$queryEncodedTreeId/document/$queryEncodedDocId"
+                contentUri = constructedUriString.toUri()
+            }
+        }
+        return contentUri?.toString() ?: data.track.filePath
     }
 
     private fun createMediaItem(data: QueueController.TrackData): MediaItem {
@@ -557,43 +690,7 @@ class CygnusPlaybackService : MediaLibraryService() {
                 (data.track.artist == "<not found>")
 
         // 2. Resolve or use cached URI
-        val playableUriString = if (cachedUri == null) {
-            val app = application as CygnusApplication
-            val path = currentPlaylistPath ?: ""
-            val m3uUri = if (path.startsWith("content://") || path.startsWith("file://")) {
-                path.toUri()
-            } else {
-                Uri.fromFile(File(path))
-            }
-            val parentRelativePath = app.playlistRepository.resolveRelativePathFromUri(m3uUri)
-            val fullRelPath = if (parentRelativePath.isEmpty()) data.track.filePath else "$parentRelativePath${data.track.filePath}"
-
-            var contentUri = app.playlistRepository.mediaStoreResolver.resolvePathToUri(fullRelPath)
-
-            if ((contentUri == null) && parentRelativePath.isNotEmpty()) {
-                val cleanRelPath = data.track.filePath.substringAfterLast("/")
-                val alternativePath = if (parentRelativePath.endsWith("/")) "$parentRelativePath$cleanRelPath" else "$parentRelativePath/$cleanRelPath"
-                contentUri = app.playlistRepository.mediaStoreResolver.resolvePathToUri(alternativePath)
-            }
-
-            if (contentUri == null) {
-                val prefs = getSharedPreferences("cygnus_prefs", MODE_PRIVATE)
-                val libraryRootStr = prefs.getString("library_root", null)
-                if (libraryRootStr != null) {
-                    val decodedRoot = Uri.decode(libraryRootStr)
-                    val treeId = decodedRoot.substringAfter("/tree/").trim()
-                    val cleanTrackRel = data.track.filePath.replace("\\", "/")
-                    val documentId = "$treeId/$cleanTrackRel"
-                    val queryEncodedTreeId = treeId.replace("/", "%2F").replace(":", "%3A").replace(" ", "%20").replace("'", "%27")
-                    val queryEncodedDocId = documentId.replace("/", "%2F").replace(":", "%3A").replace(" ", "%20").replace("'", "%27")
-                    val constructedUriString = "content://com.android.externalstorage.documents/tree/$queryEncodedTreeId/document/$queryEncodedDocId"
-                    contentUri = constructedUriString.toUri()
-                }
-            }
-            contentUri?.toString() ?: data.track.filePath
-        } else {
-            cachedUri
-        }
+        val playableUriString = resolvePlayableUri(data)
 
         // 3. Trigger asynchronous lazy metadata/artwork extraction
         // We ALWAYS do this to ensure artwork is loaded, as artwork is not stored in the DB.
@@ -604,16 +701,18 @@ class CygnusPlaybackService : MediaLibraryService() {
                 val realMeta = app.playlistRepository.metadataExtractor.extract(trackUri)
 
                 // Persist updates to DB if needed (New URI or placeholder tags)
-                if (needsUriResolution || isPlaceholder) {
+                val needsMetadataUpdate = isPlaceholder || ((data.track.trackGain == null) && (data.track.albumGain == null))
+                if (needsUriResolution || needsMetadataUpdate) {
                     val updatedTrack = data.track.copy(
                         contentUri = playableUriString,
                         title = if (isPlaceholder && (realMeta.title != "<not found>")) realMeta.title else data.track.title,
                         artist = if (isPlaceholder) realMeta.artist else data.track.artist,
                         album = if (isPlaceholder) realMeta.album else data.track.album,
-                        trackGain = if (isPlaceholder) realMeta.trackGain else data.track.trackGain,
-                        albumGain = if (isPlaceholder) realMeta.albumGain else data.track.albumGain,
+                        trackGain = if (needsMetadataUpdate) (realMeta.trackGain ?: data.track.trackGain) else data.track.trackGain,
+                        albumGain = if (needsMetadataUpdate) (realMeta.albumGain ?: data.track.albumGain) else data.track.albumGain,
                     )
                     app.database.trackDao().update(updatedTrack)
+                    queueController?.updateTrackInCache(updatedTrack)
                 }
 
                 // Push the artwork (and tags if updated) back into the active player

@@ -5,7 +5,13 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import com.festerhead.cygnusplayer.CygnusApplication
+import com.festerhead.cygnusplayer.core.QueueController
+import com.festerhead.cygnusplayer.core.ReplayGainController
+import com.festerhead.cygnusplayer.data.entities.ShuffleMode
+import com.festerhead.cygnusplayer.data.entities.TrackEntity
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -116,5 +122,93 @@ class CygnusPlaybackServiceUnitTest {
         assertEquals("com.festerhead.cygnusplayer.STOP_PLAYBACK", CygnusPlaybackService.ACTION_STOP_PLAYBACK)
         assertEquals("extra_playlist_path", CygnusPlaybackService.EXTRA_PLAYLIST_PATH)
         assertEquals("extra_active_playlist_path", CygnusPlaybackService.EXTRA_ACTIVE_PLAYLIST_PATH)
+    }
+
+    /**
+     * Verifies that [CygnusPlaybackService.applyReplayGainSynchronously] sets player volume
+     * immediately from the cached current track in the sliding window.
+     */
+    @Test
+    fun testApplyReplayGainSynchronously_success() {
+        val service = CygnusPlaybackService()
+        val mockPlayer = mockk<Player>(relaxed = true)
+        val mockQueueController = mockk<QueueController>()
+        val replayGainController = ReplayGainController()
+
+        val track = TrackEntity(
+            trackId = 10L,
+            filePath = "album/song.mp3",
+            folderPath = "album",
+            trackGain = -10f,
+            albumGain = -6.0205999f, // 10^(-6.0205999/20) ~ 0.50
+        )
+        val trackData = QueueController.TrackData(queueId = 1L, track = track)
+
+        every { mockQueueController.getCurrentTrackData() } returns trackData
+
+        service.player = mockPlayer
+        service.queueController = mockQueueController
+        service.replayGainController = replayGainController
+        service.currentShuffleMode = ShuffleMode.SEQUENTIAL
+
+        val result = service.applyReplayGainSynchronously()
+
+        assertTrue("applyReplayGainSynchronously must return true when cache is populated", result)
+        verify(exactly = 1) { mockPlayer.volume = match { it in 0.49f..0.51f } }
+    }
+
+    /**
+     * Verifies that [CygnusPlaybackService.applyReplayGainSynchronously] returns false
+     * when the sliding window cache is unpopulated, allowing fallback to async resolution.
+     */
+    @Test
+    fun testApplyReplayGainSynchronously_fallbackWhenCacheEmpty() {
+        val service = CygnusPlaybackService()
+        val mockPlayer = mockk<Player>(relaxed = true)
+        val mockQueueController = mockk<QueueController>()
+
+        every { mockQueueController.getCurrentTrackData() } returns null
+
+        service.player = mockPlayer
+        service.queueController = mockQueueController
+        service.replayGainController = ReplayGainController()
+
+        val result = service.applyReplayGainSynchronously()
+
+        assertFalse("applyReplayGainSynchronously must return false when cache is empty", result)
+        verify(exactly = 0) { mockPlayer.volume = any() }
+    }
+
+    /**
+     * Verifies that [CygnusPlaybackService.applyReplayGainSynchronously] respects TRACK_GAIN
+     * when in TRACK_RANDOM shuffle mode.
+     */
+    @Test
+    fun testApplyReplayGainSynchronously_trackRandomMode() {
+        val service = CygnusPlaybackService()
+        val mockPlayer = mockk<Player>(relaxed = true)
+        val mockQueueController = mockk<QueueController>()
+        val replayGainController = ReplayGainController()
+
+        val track = TrackEntity(
+            trackId = 20L,
+            filePath = "album/song2.mp3",
+            folderPath = "album",
+            trackGain = -12.0411998f, // 10^(-12.0411998/20) ~ 0.25
+            albumGain = -6.0205999f,
+        )
+        val trackData = QueueController.TrackData(queueId = 2L, track = track)
+
+        every { mockQueueController.getCurrentTrackData() } returns trackData
+
+        service.player = mockPlayer
+        service.queueController = mockQueueController
+        service.replayGainController = replayGainController
+        service.currentShuffleMode = ShuffleMode.TRACK_RANDOM
+
+        val result = service.applyReplayGainSynchronously()
+
+        assertTrue(result)
+        verify(exactly = 1) { mockPlayer.volume = match { it in 0.24f..0.26f } }
     }
 }
