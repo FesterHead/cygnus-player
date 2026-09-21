@@ -18,6 +18,7 @@ Release policy:
 
 - Comprehensive unit tests in `ShuffleEngineTest` covering album shuffle (`RANDOM_FOLDER_SEQUENTIAL`) history buffer behavior: 250-album library validation (`testFolderHistoryBufferWith250Albums`), 24-album boundary resilience (`testFolderHistoryBoundaryAtExactly24Folders`), and sub-24 album buffer-disabled logic (`testFolderHistoryDisabledWhenLessThan24Folders`).
 - Documented queue integrity requirements for `RANDOM_FOLDER_SEQUENTIAL` history handling in `AGENTS.md`.
+- Documented playlist storage in the music root, relative track path requirements, and the author's foobar2000 PC-to-phone synchronization workflow with directory and playlist examples in `README.md`.
 
 ### Fixed
 

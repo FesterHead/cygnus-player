@@ -69,6 +69,62 @@ Cygnus Player is fully compatible with modern Android **Scoped Storage** require
 2. **Relative Path Resolution**: The app uses the **MediaStore API** to map M3U relative paths (e.g., `Rush/2112/01 - 2112.mp3`) to system-registered content URIs. This avoids restricted direct filesystem access and ensures absolute sequence integrity.
 3. **Permissions**: Ensure the `READ_MEDIA_AUDIO` permission is granted to allow the system to index your music files for the MediaStore.
 
+### 📂 Playlist Storage & Relative Path Structure
+
+To guarantee seamless track resolution and library portability across devices:
+
+- **Store Playlists in the Music Root**: All `.m3u` or `.m3u8` playlist files should be stored directly in your selected **Music Root folder** (the top-level directory selected during initial setup, such as `Internal Storage > Music`).
+- **Use Relative Paths Only**: Song entries inside each playlist must use **relative paths** originating from the Music Root folder (e.g., `Rush/2112/01 - 2112.mp3`). Forward slashes (`/`) are standard; Windows backslashes (`\`) are automatically sanitized to `/`.
+- **No Absolute Paths**: Absolute paths (such as `C:\Music\...` or paths starting with `/` like `/storage/emulated/0/Music/...`) are explicitly **unsupported and ignored** by the parser to maintain portability across devices and comply with Scoped Storage.
+- **Physical File Metadata**: Cygnus Player extracts track metadata and ReplayGain directly from ID3 tags of the physical audio files in the background; `#EXTINF` lines are safely ignored.
+
+> [!TIP]
+> **Author's Workflow (foobar2000 & PC Sync)**:
+> The author maintains their music library and playlists on a PC using [foobar2000](https://www.foobar2000.org/) and copies them to the target phone. The author also maintains the identical music folder structure and files on the PC that is copied to the phone. Because playlists saved at the root on the PC use relative paths, copying the `.m3u` / `.m3u8` files directly into the phone's music root folder works seamlessly without modifying any track paths.
+
+#### Example Directory Layout
+
+In this example, the user selected the `Music/` directory as their Music Root:
+
+```text
+Music/                               <-- Selected Music Root Folder
+├── Rush - Masterworks.m3u8          <-- Playlist stored in Music Root
+├── Prog Rock Sampler.m3u            <-- Playlist stored in Music Root
+├── Rush/
+│   ├── 2112/
+│   │   ├── 01 - 2112.mp3
+│   │   └── 02 - A Passage to Bangkok.mp3
+│   └── Hemispheres/
+│       ├── 01 - Cygnus X-1 Book II Prelude.mp3
+│       └── 02 - Circumstances.mp3
+└── Yes/
+    └── Fragile/
+        ├── 01 - Roundabout.mp3
+        └── 02 - Cans and Brahms.mp3
+```
+
+#### Example Playlist Contents
+
+##### `Music/Rush - Masterworks.m3u8`
+
+```m3u
+#EXTM3U
+Rush/2112/01 - 2112.mp3
+Rush/2112/02 - A Passage to Bangkok.mp3
+Rush/Hemispheres/01 - Cygnus X-1 Book II Prelude.mp3
+Rush/Hemispheres/02 - Circumstances.mp3
+```
+
+##### `Music/Prog Rock Sampler.m3u`
+
+```m3u
+#EXTM3U
+Rush/2112/01 - 2112.mp3
+Yes/Fragile/01 - Roundabout.mp3
+Rush/Hemispheres/01 - Cygnus X-1 Book II Prelude.mp3
+Yes/Fragile/02 - Cans and Brahms.mp3
+```
+
 ## 🤖 AI-Assisted Development
 
 This project is developed and managed using Google AI models. The architecture, implementation, and repository maintenance are guided by specialized AI agents to ensure high-performance, minimalist engineering standards.
