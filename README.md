@@ -13,9 +13,34 @@ Cygnus Player is a minimalist, high-performance local audio player for Android, 
 
 Designed for collectors with large libraries, Cygnus Player prioritizes a low memory footprint ($O(1)$ relative to queue size) and absolute sequence integrity.
 
+## 📑 Table of Contents
+
+- [⚠️ Project Status & Disclaimer](#project-status--disclaimer)
+- [🤖 AI-Assisted Development](#ai-assisted-development)
+- [🌌 Why "Cygnus Player"?](#why-cygnus-player)
+- [🚀 Key Features](#key-features)
+- [📱 Application Screenshots](#application-screenshots)
+- [📲 Installation & Updates](#installation--updates)
+  - [📥 First-Time Installation](#first-time-installation)
+  - [🔄 Updating to a Newer Version](#updating-to-a-newer-version)
+- [📁 Storage & Scoped Storage Compliance](#storage--scoped-storage-compliance)
+  - [📂 Playlist Storage & Relative Path Structure](#playlist-storage--relative-path-structure)
+- [🛠 Tech Stack](#tech-stack)
+- [🏗 Architecture Highlights](#architecture-highlights)
+- [🎨 Branding & Iconography](#branding--iconography)
+- [📈 Status & Roadmap](#status--roadmap)
+  - [🚗 Android Auto Setup & Local Testing](#android-auto-setup--local-testing)
+- [🧪 High-Efficiency Workflows](#high-efficiency-workflows)
+- [🚀 Deployment & CI/CD](#deployment--cicd)
+- [📜 Credits & Licensing](#credits--licensing)
+
 ## ⚠️ Project Status & Disclaimer
 
 Cygnus Player is a personal, open-source hobby project provided strictly **as-is** without official support or formal issue tracking. Feature scope is intentionally tight and focused on a minimalist MP3 playback engine. However, pull requests targeting `main` (or `develop`) that align with project goals and technical standards may be accepted. Please review [CONTRIBUTING.md](CONTRIBUTING.md) before submitting code changes. You are also welcome to fork the repository and adapt the code to suit your own needs under the terms of the MIT License.
+
+## 🤖 AI-Assisted Development
+
+This project is developed and managed using Google AI models. The architecture, implementation, and repository maintenance are guided by specialized AI agents to ensure high-performance, minimalist engineering standards.
 
 ## 🌌 Why "Cygnus Player"?
 
@@ -60,6 +85,36 @@ Modern commercial streaming apps and feature-bloated players treat music like a 
 |                                 Minimalist Now Playing                                  |                                Home Screen Widget                                |                                  Settings & Diagnostics                                   |
 | :-------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------: |
 | <img src="docs/screenshots/08%20-%20now%20playing.png" width="220" alt="Now Playing" /> | <img src="docs/screenshots/09%20-%20widget.png" width="220" alt="Home Widget" /> | <img src="docs/screenshots/10%20-%20configuration.png" width="220" alt="Configuration" /> |
+
+## 📲 Installation & Updates
+
+Cygnus Player is not distributed through the Google Play Store. Official releases are provided directly as signed APK packages on GitHub.
+
+### 📥 First-Time Installation
+
+1. **Download the APK**: Visit the [Latest Release](https://github.com/FesterHead/cygnus-player/releases/latest) page on your Android device and download `app-release.apk` from the **Assets** section.
+2. **Allow Installation from Unknown Sources**: When opening the downloaded APK, Android may notify you that installing unknown apps from your browser or file manager is blocked:
+   - Tap **Settings** in the system prompt.
+   - Toggle **Allow from this source** (or "Install unknown apps") for your browser or file manager.
+3. **Install**: Return to the installer prompt and tap **Install**.
+4. **Initial Setup**: Open Cygnus Player, grant the audio permission (`READ_MEDIA_AUDIO`), and select your music root folder as described in the [Storage & Scoped Storage Compliance](#-storage--scoped-storage-compliance) section below.
+
+> [!NOTE]
+> Android 15 (API 35) or newer is required to run Cygnus Player (optimized for Android 16, API 36).
+
+### 🔄 Updating to a Newer Version
+
+When a new version is released, you can update without losing any of your saved data:
+
+1. **Download the Latest APK**: Download `app-release.apk` from the [Latest Release](https://github.com/FesterHead/cygnus-player/releases/latest).
+2. **Install Over the Existing App**: Open the downloaded APK file. Android will automatically detect the installed version and prompt you to **Update** the application.
+3. **Preserve Your Data**: Tap **Update**. All your playlist history, playback positions, active shuffle modes, and cached metadata will remain intact.
+
+> [!CAUTION]
+> **Do not uninstall the previous version before updating.** Uninstalling the app causes Android to delete all local app data, wiping your saved playlists, playback state, and permissions. Installing the new APK directly over the existing one safely updates the app while preserving your database and settings.
+
+> [!TIP]
+> **Android Auto Users**: Android Auto hides sideloaded apps by default. To display Cygnus Player on your vehicle display or the Desktop Head Unit (DHU), enable Android Auto Developer Mode and turn on **Unknown sources**. See [Android Auto Setup & Local Testing](#-android-auto-setup--local-testing) below for full instructions.
 
 ## 📁 Storage & Scoped Storage Compliance
 
@@ -124,10 +179,6 @@ Yes/Fragile/01 - Roundabout.mp3
 Rush/Hemispheres/01 - Cygnus X-1 Book II Prelude.mp3
 Yes/Fragile/02 - Cans and Brahms.mp3
 ```
-
-## 🤖 AI-Assisted Development
-
-This project is developed and managed using Google AI models. The architecture, implementation, and repository maintenance are guided by specialized AI agents to ensure high-performance, minimalist engineering standards.
 
 ## 🛠 Tech Stack
 
