@@ -570,6 +570,11 @@ class CygnusPlaybackService : MediaLibraryService() {
                     album = if (isPlaceholder) realMeta.album else data.track.album,
                     trackGain = realMeta.trackGain ?: data.track.trackGain,
                     albumGain = realMeta.albumGain ?: data.track.albumGain,
+                    date = realMeta.date ?: data.track.date,
+                    genre = realMeta.genre ?: data.track.genre,
+                    comment = realMeta.comment ?: data.track.comment,
+                    trackPeak = realMeta.trackPeak ?: data.track.trackPeak,
+                    albumPeak = realMeta.albumPeak ?: data.track.albumPeak,
                 )
                 app.database.trackDao().update(updatedTrack)
                 queueController?.updateTrackInCache(updatedTrack)
@@ -700,8 +705,9 @@ class CygnusPlaybackService : MediaLibraryService() {
                 val app = application as CygnusApplication
                 val realMeta = app.playlistRepository.metadataExtractor.extract(trackUri)
 
-                // Persist updates to DB if needed (New URI or placeholder tags)
-                val needsMetadataUpdate = isPlaceholder || ((data.track.trackGain == null) && (data.track.albumGain == null))
+                // Persist updates to DB if needed (New URI or placeholder tags or new metadata fields)
+                val needsMetadataUpdate = isPlaceholder || ((data.track.trackGain == null) && (data.track.albumGain == null)) ||
+                    (data.track.date == null && realMeta.date != null) || (data.track.genre == null && realMeta.genre != null)
                 if (needsUriResolution || needsMetadataUpdate) {
                     val updatedTrack = data.track.copy(
                         contentUri = playableUriString,
@@ -710,6 +716,11 @@ class CygnusPlaybackService : MediaLibraryService() {
                         album = if (isPlaceholder) realMeta.album else data.track.album,
                         trackGain = if (needsMetadataUpdate) (realMeta.trackGain ?: data.track.trackGain) else data.track.trackGain,
                         albumGain = if (needsMetadataUpdate) (realMeta.albumGain ?: data.track.albumGain) else data.track.albumGain,
+                        date = realMeta.date ?: data.track.date,
+                        genre = realMeta.genre ?: data.track.genre,
+                        comment = realMeta.comment ?: data.track.comment,
+                        trackPeak = realMeta.trackPeak ?: data.track.trackPeak,
+                        albumPeak = realMeta.albumPeak ?: data.track.albumPeak,
                     )
                     app.database.trackDao().update(updatedTrack)
                     queueController?.updateTrackInCache(updatedTrack)

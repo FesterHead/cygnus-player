@@ -24,6 +24,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
+import com.festerhead.cygnusplayer.ui.model.SongDetails
+
 /**
  * UI State for the Now Playing screen.
  */
@@ -37,6 +39,7 @@ data class NowPlayingUiState(
     val currentPositionMs: Long = 0L,
     val durationMs: Long = 0L,
     val artwork: ByteArray? = null,
+    val songDetails: SongDetails = SongDetails(),
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -52,6 +55,7 @@ data class NowPlayingUiState(
         if (shuffleMode != other.shuffleMode) return false
         if (currentPositionMs != other.currentPositionMs) return false
         if (durationMs != other.durationMs) return false
+        if (songDetails != other.songDetails) return false
         if (artwork != null) {
             if (other.artwork == null) return false
             if (!artwork.contentEquals(other.artwork)) return false
@@ -69,6 +73,7 @@ data class NowPlayingUiState(
         result = (31 * result) + shuffleMode.hashCode()
         result = (31 * result) + currentPositionMs.hashCode()
         result = (31 * result) + durationMs.hashCode()
+        result = (31 * result) + songDetails.hashCode()
         result = (31 * result) + (artwork?.contentHashCode() ?: 0)
         return result
     }
@@ -171,6 +176,8 @@ class NowPlayingViewModel(application: Application) : AndroidViewModel(applicati
         
         val app = getApplication<Application>() as CygnusApplication
         val positionStr = app.queueController.getPositionString()
+        val currentTrack = app.queueController.getCurrentTrackData()?.track
+        val songDetails = SongDetails.fromTrack(currentTrack)
 
         val currentPos = controller.currentPosition.coerceAtLeast(0L)
         val dur = controller.duration.coerceAtLeast(0L)
@@ -184,6 +191,7 @@ class NowPlayingViewModel(application: Application) : AndroidViewModel(applicati
                 currentPositionMs = currentPos,
                 durationMs = if (dur == androidx.media3.common.C.TIME_UNSET) 0L else dur,
                 artwork = metadata?.artworkData,
+                songDetails = songDetails,
             )
         }
     }
@@ -211,6 +219,7 @@ class NowPlayingViewModel(application: Application) : AndroidViewModel(applicati
                 shuffleMode = shuffleMode,
                 currentPositionMs = 0L,
                 durationMs = 0L,
+                songDetails = SongDetails(),
             )
         }
         updateMetadataFromController()

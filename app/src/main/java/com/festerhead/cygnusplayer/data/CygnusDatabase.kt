@@ -22,7 +22,7 @@ import com.festerhead.cygnusplayer.data.entities.TrackEntity
         QueueEntity::class,
         PlaylistStateEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @androidx.room.TypeConverters(Converters::class)
