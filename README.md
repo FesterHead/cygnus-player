@@ -464,15 +464,15 @@ Before merging to `main` to trigger a release, ensure both files are updated:
 
 ```properties
 # version.properties
-VERSION_NAME=1.0.7
-VERSION_CODE=8
+VERSION_NAME=1.0.8
+VERSION_CODE=9
 ```
 
 ```kotlin
 // VersionInfo.kt
 object VersionInfo {
-    const val VERSION_NAME = "1.0.7"
-    const val VERSION_CODE = 8
+    const val VERSION_NAME = "1.0.8"
+    const val VERSION_CODE = 9
 }
 ```
 

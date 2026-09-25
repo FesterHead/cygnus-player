@@ -14,6 +14,8 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-09-25
+
 ### Added
 
 - Added a Song Details button on the Now Playing screen opening a modal dialog (`SongDetailsDialog`) that displays track metadata and ReplayGain statistics in a two-column table matching the Monokai Pro (Filter Spectrum) theme.
