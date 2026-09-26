@@ -13,9 +13,34 @@ Cygnus Player is a minimalist, high-performance local audio player for Android, 
 
 Designed for collectors with large libraries, Cygnus Player prioritizes a low memory footprint ($O(1)$ relative to queue size) and absolute sequence integrity.
 
+## 📑 Table of Contents
+
+- [⚠️ Project Status & Disclaimer](#project-status--disclaimer)
+- [🤖 AI-Assisted Development](#ai-assisted-development)
+- [🌌 Why "Cygnus Player"?](#why-cygnus-player)
+- [🚀 Key Features](#key-features)
+- [📱 Application Screenshots](#application-screenshots)
+- [📲 Installation & Updates](#installation--updates)
+  - [📥 First-Time Installation](#first-time-installation)
+  - [🔄 Updating to a Newer Version](#updating-to-a-newer-version)
+- [📁 Storage & Scoped Storage Compliance](#storage--scoped-storage-compliance)
+  - [📂 Playlist Storage & Relative Path Structure](#playlist-storage--relative-path-structure)
+- [🛠 Tech Stack](#tech-stack)
+- [🏗 Architecture Highlights](#architecture-highlights)
+- [🎨 Branding & Iconography](#branding--iconography)
+- [📈 Status & Roadmap](#status--roadmap)
+  - [🚗 Android Auto Setup & Local Testing](#android-auto-setup--local-testing)
+- [🧪 High-Efficiency Workflows](#high-efficiency-workflows)
+- [🚀 Deployment & CI/CD](#deployment--cicd)
+- [📜 Credits & Licensing](#credits--licensing)
+
 ## ⚠️ Project Status & Disclaimer
 
 Cygnus Player is a personal, open-source hobby project provided strictly **as-is** without official support or formal issue tracking. Feature scope is intentionally tight and focused on a minimalist MP3 playback engine. However, pull requests targeting `main` (or `develop`) that align with project goals and technical standards may be accepted. Please review [CONTRIBUTING.md](CONTRIBUTING.md) before submitting code changes. You are also welcome to fork the repository and adapt the code to suit your own needs under the terms of the MIT License.
+
+## 🤖 AI-Assisted Development
+
+This project is developed and managed using Google AI models. The architecture, implementation, and repository maintenance are guided by specialized AI agents to ensure high-performance, minimalist engineering standards.
 
 ## 🌌 Why "Cygnus Player"?
 
@@ -61,6 +86,36 @@ Modern commercial streaming apps and feature-bloated players treat music like a 
 | :-------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------: |
 | <img src="docs/screenshots/08%20-%20now%20playing.png" width="220" alt="Now Playing" /> | <img src="docs/screenshots/09%20-%20widget.png" width="220" alt="Home Widget" /> | <img src="docs/screenshots/10%20-%20configuration.png" width="220" alt="Configuration" /> |
 
+## 📲 Installation & Updates
+
+Cygnus Player is not distributed through the Google Play Store. Official releases are provided directly as signed APK packages on GitHub.
+
+### 📥 First-Time Installation
+
+1. **Download the APK**: Visit the [Latest Release](https://github.com/FesterHead/cygnus-player/releases/latest) page on your Android device and download `app-release.apk` from the **Assets** section.
+2. **Allow Installation from Unknown Sources**: When opening the downloaded APK, Android may notify you that installing unknown apps from your browser or file manager is blocked:
+   - Tap **Settings** in the system prompt.
+   - Toggle **Allow from this source** (or "Install unknown apps") for your browser or file manager.
+3. **Install**: Return to the installer prompt and tap **Install**.
+4. **Initial Setup**: Open Cygnus Player, grant the audio permission (`READ_MEDIA_AUDIO`), and select your music root folder as described in the [Storage & Scoped Storage Compliance](#-storage--scoped-storage-compliance) section below.
+
+> [!NOTE]
+> Android 15 (API 35) or newer is required to run Cygnus Player (optimized for Android 16, API 36).
+
+### 🔄 Updating to a Newer Version
+
+When a new version is released, you can update without losing any of your saved data:
+
+1. **Download the Latest APK**: Download `app-release.apk` from the [Latest Release](https://github.com/FesterHead/cygnus-player/releases/latest).
+2. **Install Over the Existing App**: Open the downloaded APK file. Android will automatically detect the installed version and prompt you to **Update** the application.
+3. **Preserve Your Data**: Tap **Update**. All your playlist history, playback positions, active shuffle modes, and cached metadata will remain intact.
+
+> [!CAUTION]
+> **Do not uninstall the previous version before updating.** Uninstalling the app causes Android to delete all local app data, wiping your saved playlists, playback state, and permissions. Installing the new APK directly over the existing one safely updates the app while preserving your database and settings.
+
+> [!TIP]
+> **Android Auto Users**: Android Auto hides sideloaded apps by default. To display Cygnus Player on your vehicle display or the Desktop Head Unit (DHU), enable Android Auto Developer Mode and turn on **Unknown sources**. See [Android Auto Setup & Local Testing](#-android-auto-setup--local-testing) below for full instructions.
+
 ## 📁 Storage & Scoped Storage Compliance
 
 Cygnus Player is fully compatible with modern Android **Scoped Storage** requirements. To ensure high-performance relative path resolution for massive libraries, please follow these steps:
@@ -69,9 +124,61 @@ Cygnus Player is fully compatible with modern Android **Scoped Storage** require
 2. **Relative Path Resolution**: The app uses the **MediaStore API** to map M3U relative paths (e.g., `Rush/2112/01 - 2112.mp3`) to system-registered content URIs. This avoids restricted direct filesystem access and ensures absolute sequence integrity.
 3. **Permissions**: Ensure the `READ_MEDIA_AUDIO` permission is granted to allow the system to index your music files for the MediaStore.
 
-## 🤖 AI-Assisted Development
+### 📂 Playlist Storage & Relative Path Structure
 
-This project is developed and managed using Google AI models. The architecture, implementation, and repository maintenance are guided by specialized AI agents to ensure high-performance, minimalist engineering standards.
+To guarantee seamless track resolution and library portability across devices:
+
+- **Store Playlists in the Music Root**: All `.m3u` or `.m3u8` playlist files should be stored directly in your selected **Music Root folder** (the top-level directory selected during initial setup, such as `Internal Storage > Music`).
+- **Use Relative Paths Only**: Song entries inside each playlist must use **relative paths** originating from the Music Root folder (e.g., `Rush/2112/01 - 2112.mp3`). Forward slashes (`/`) are standard; Windows backslashes (`\`) are automatically sanitized to `/`.
+- **No Absolute Paths**: Absolute paths (such as `C:\Music\...` or paths starting with `/` like `/storage/emulated/0/Music/...`) are explicitly **unsupported and ignored** by the parser to maintain portability across devices and comply with Scoped Storage.
+- **Physical File Metadata**: Cygnus Player extracts track metadata and ReplayGain directly from ID3 tags of the physical audio files in the background; `#EXTINF` lines are safely ignored.
+
+> [!TIP]
+> **Author's Workflow (foobar2000 & PC Sync)**:
+> The author maintains their music library and playlists on a PC using [foobar2000](https://www.foobar2000.org/) and copies them to the target phone. The author also maintains the identical music folder structure and files on the PC that is copied to the phone. Because playlists saved at the root on the PC use relative paths, copying the `.m3u` / `.m3u8` files directly into the phone's music root folder works seamlessly without modifying any track paths.
+
+#### Example Directory Layout
+
+In this example, the user selected the `Music/` directory as their Music Root:
+
+```text
+Music/                               <-- Selected Music Root Folder
+├── Rush - Masterworks.m3u8          <-- Playlist stored in Music Root
+├── Prog Rock Sampler.m3u            <-- Playlist stored in Music Root
+├── Rush/
+│   ├── 2112/
+│   │   ├── 01 - 2112.mp3
+│   │   └── 02 - A Passage to Bangkok.mp3
+│   └── Hemispheres/
+│       ├── 01 - Cygnus X-1 Book II Prelude.mp3
+│       └── 02 - Circumstances.mp3
+└── Yes/
+    └── Fragile/
+        ├── 01 - Roundabout.mp3
+        └── 02 - Cans and Brahms.mp3
+```
+
+#### Example Playlist Contents
+
+##### `Music/Rush - Masterworks.m3u8`
+
+```m3u
+#EXTM3U
+Rush/2112/01 - 2112.mp3
+Rush/2112/02 - A Passage to Bangkok.mp3
+Rush/Hemispheres/01 - Cygnus X-1 Book II Prelude.mp3
+Rush/Hemispheres/02 - Circumstances.mp3
+```
+
+##### `Music/Prog Rock Sampler.m3u`
+
+```m3u
+#EXTM3U
+Rush/2112/01 - 2112.mp3
+Yes/Fragile/01 - Roundabout.mp3
+Rush/Hemispheres/01 - Cygnus X-1 Book II Prelude.mp3
+Yes/Fragile/02 - Cans and Brahms.mp3
+```
 
 ## 🛠 Tech Stack
 
@@ -357,15 +464,15 @@ Before merging to `main` to trigger a release, ensure both files are updated:
 
 ```properties
 # version.properties
-VERSION_NAME=1.0.7
-VERSION_CODE=8
+VERSION_NAME=1.0.8
+VERSION_CODE=9
 ```
 
 ```kotlin
 // VersionInfo.kt
 object VersionInfo {
-    const val VERSION_NAME = "1.0.7"
-    const val VERSION_CODE = 8
+    const val VERSION_NAME = "1.0.8"
+    const val VERSION_CODE = 9
 }
 ```
 

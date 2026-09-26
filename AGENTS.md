@@ -127,6 +127,7 @@ You are an expert Android Engineer specializing in low-overhead audio architectu
   - Shuffle the list of directories.
   - Play all tracks in a directory sequentially.
   - **History Buffer:** Maintain a history of at least 24 folders. Do not re-select a folder from this history.
+  - **Queue Integrity:** Folders in the history buffer must be deferred and appended after fresh folders rather than discarded, guaranteeing the active queue retains all playlist tracks across reshuffles.
   - **Constraint:** If the total folder count in the M3U is less than 24, the history buffer size is 0.
 
 ## 7. Persistence & State

@@ -26,12 +26,21 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.graphics.BitmapFactory
 
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.ui.tooling.preview.Preview
+import com.festerhead.cygnusplayer.ui.model.SongDetails
+import com.festerhead.cygnusplayer.ui.theme.CygnusPlayerTheme
+import com.festerhead.cygnusplayer.ui.viewmodel.NowPlayingUiState
+
 /**
  * Minimalist "Now Playing" screen.
  * 
  * Provides high-contrast playback controls and displays the current track position 
  * within the sequence. Navigation back to the library is handled by a high-contrast
- * Monokai Blue button.
+ * Monokai Blue button, alongside a Song Details action for viewing granular ID3 tags.
+ *
+ * @param viewModel The [NowPlayingViewModel] providing playback state and metadata.
+ * @param onNavigateBack Callback invoked when navigating back to the playlist picker.
  */
 @Composable
 fun NowPlayingScreen(
@@ -39,6 +48,34 @@ fun NowPlayingScreen(
     onNavigateBack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    NowPlayingContent(
+        uiState = uiState,
+        onNavigateBack = onNavigateBack,
+        onTogglePlayPause = { viewModel.togglePlayPause() },
+    )
+}
+
+/**
+ * Stateless content composable for the Now Playing screen.
+ *
+ * @param uiState Current playback state and track metadata.
+ * @param onNavigateBack Callback invoked when navigating back to playlists.
+ * @param onTogglePlayPause Callback invoked to toggle active playback.
+ */
+@Composable
+fun NowPlayingContent(
+    uiState: NowPlayingUiState,
+    onNavigateBack: () -> Unit,
+    onTogglePlayPause: () -> Unit,
+) {
+    var showDetailsDialog by remember { mutableStateOf(false) }
+
+    if (showDetailsDialog) {
+        SongDetailsDialog(
+            songDetails = uiState.songDetails,
+            onDismissRequest = { showDetailsDialog = false },
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -47,13 +84,27 @@ fun NowPlayingScreen(
             .statusBarsPadding()
             .padding(24.dp),
     ) {
-        // Navigation Back Button
-        IconButton(onClick = onNavigateBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back to Playlists",
-                tint = MonokaiBlue,
-            )
+        // Navigation Back Button & Song Details Action
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onNavigateBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back to Playlists",
+                    tint = MonokaiBlue,
+                )
+            }
+
+            IconButton(onClick = { showDetailsDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Song Details",
+                    tint = MonokaiBlue,
+                )
+            }
         }
 
         Spacer(modifier = Modifier.weight(0.5f))
@@ -118,7 +169,7 @@ fun NowPlayingScreen(
 
         // Play/Pause Toggle
         IconButton(
-            onClick = { viewModel.togglePlayPause() },
+            onClick = onTogglePlayPause,
             modifier = Modifier.size(80.dp),
         ) {
             Icon(
@@ -208,4 +259,36 @@ private fun formatTime(ms: Long): String {
     val mins = totalSecs / 60
     val secs = totalSecs % 60
     return String.format(java.util.Locale.US, "%02d:%02d", mins, secs)
+}
+
+@Preview(name = "Now Playing Screen - Playing", showBackground = true)
+@Composable
+private fun NowPlayingContentPreview() {
+    CygnusPlayerTheme {
+        NowPlayingContent(
+            uiState = NowPlayingUiState(
+                isPlaying = true,
+                trackTitle = "Limelight",
+                albumName = "Moving Pictures",
+                playlistName = "Rush Discography",
+                position = "4/12",
+                currentPositionMs = 135000L,
+                durationMs = 260000L,
+                songDetails = SongDetails(
+                    artistName = "Rush",
+                    trackTitle = "Limelight",
+                    albumTitle = "Moving Pictures",
+                    date = "1981",
+                    genre = "Rock",
+                    comment = "40th Anniversary Deluxe Edition",
+                    trackGain = "-1.61 dB",
+                    trackPeak = "0.898102",
+                    albumGain = "-1.71 dB",
+                    albumPeak = "1.000000",
+                ),
+            ),
+            onNavigateBack = {},
+            onTogglePlayPause = {},
+        )
+    }
 }

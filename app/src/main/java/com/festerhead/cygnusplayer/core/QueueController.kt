@@ -21,6 +21,7 @@ class QueueController(
 ) {
     private var currentMapping: LongArray = longArrayOf()
     private var currentIndex: Int = -1
+    private var cachedWindow: WindowData? = null
 
     /**
      * Initializes the controller with a new playback sequence.
@@ -31,6 +32,7 @@ class QueueController(
     fun initialize(mapping: LongArray, startQueueId: Long) {
         currentMapping = mapping
         currentIndex = mapping.indexOf(startQueueId).coerceAtLeast(0)
+        cachedWindow = null
     }
 
     /**
@@ -39,6 +41,7 @@ class QueueController(
     fun clear() {
         currentMapping = longArrayOf()
         currentIndex = -1
+        cachedWindow = null
     }
 
     /**
@@ -51,31 +54,85 @@ class QueueController(
         val currentId = if (currentIndex in currentMapping.indices) currentMapping[currentIndex] else null
         val nextId = if (currentIndex < (currentMapping.size - 1)) currentMapping[currentIndex + 1] else null
 
-        return WindowData(
-            prev = prevId?.let { resolveTrack(it) },
-            current = currentId?.let { resolveTrack(it) },
-            next = nextId?.let { resolveTrack(it) }
+        val prev = if ((prevId != null) && (cachedWindow?.prev?.queueId == prevId)) {
+            cachedWindow?.prev
+        } else {
+            prevId?.let { resolveTrack(it) }
+        }
+
+        val current = if ((currentId != null) && (cachedWindow?.current?.queueId == currentId)) {
+            cachedWindow?.current
+        } else {
+            currentId?.let { resolveTrack(it) }
+        }
+
+        val next = if ((nextId != null) && (cachedWindow?.next?.queueId == nextId)) {
+            cachedWindow?.next
+        } else {
+            nextId?.let { resolveTrack(it) }
+        }
+
+        val window = WindowData(prev = prev, current = current, next = next)
+        cachedWindow = window
+        return window
+    }
+
+    /**
+     * Returns the currently cached [TrackData] at the center of the sliding window, if resolved.
+     *
+     * @return The cached [TrackData], or `null` if not yet resolved.
+     */
+    fun getCurrentTrackData(): TrackData? = cachedWindow?.current
+
+    /**
+     * Returns the cached [TrackData] for the next track in the sliding window, if resolved.
+     *
+     * @return The cached [TrackData], or `null` if not yet resolved or at the end of the queue.
+     */
+    fun getNextTrackData(): TrackData? = cachedWindow?.next
+
+    /**
+     * Updates an in-memory cached track entity when metadata extraction finishes in the background.
+     *
+     * @param updatedTrack The updated [TrackEntity] with extracted tags.
+     */
+    fun updateTrackInCache(updatedTrack: TrackEntity) {
+        val window = cachedWindow ?: return
+        cachedWindow = WindowData(
+            prev = if (window.prev?.track?.trackId == updatedTrack.trackId) window.prev.copy(track = updatedTrack) else window.prev,
+            current = if (window.current?.track?.trackId == updatedTrack.trackId) window.current.copy(track = updatedTrack) else window.current,
+            next = if (window.next?.track?.trackId == updatedTrack.trackId) window.next.copy(track = updatedTrack) else window.next,
         )
     }
 
     /**
-     * Moves the internal pointer forward by one.
+     * Moves the internal pointer forward by one and shifts the cached window forward synchronously.
      * Called when the player transitions to the "next" item in its sliding window.
      */
     fun moveNext() {
         if (currentIndex < currentMapping.size - 1) {
             currentIndex++
+            cachedWindow = WindowData(
+                prev = cachedWindow?.current,
+                current = cachedWindow?.next,
+                next = null,
+            )
         }
     }
 
     /**
-     * Moves the internal pointer backward by one.
+     * Moves the internal pointer backward by one and shifts the cached window backward synchronously.
      * While Cygnus is minimalist and "No-Skip", the system or car UI might trigger 
      * a previous action which we must handle for state integrity.
      */
     fun movePrevious() {
         if (currentIndex > 0) {
             currentIndex--
+            cachedWindow = WindowData(
+                prev = null,
+                current = cachedWindow?.prev,
+                next = cachedWindow?.current,
+            )
         }
     }
 

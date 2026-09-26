@@ -13,12 +13,18 @@ import androidx.room.PrimaryKey
  *
  * @property trackId Unique auto-generated primary key.
  * @property filePath The absolute or relative path to the physical audio file. Must be unique.
+ * @property contentUri The resolved Android Content URI for Scoped Storage/MediaStore playback.
  * @property folderPath The path to the parent directory, used for folder-based shuffling.
  * @property title The song title, extracted from metadata tags.
  * @property artist The artist name, extracted from metadata tags.
  * @property album The album name, extracted from metadata tags.
  * @property trackGain The ReplayGain value for individual track normalization.
  * @property albumGain The ReplayGain value for album-level normalization.
+ * @property date The recording or release date/year extracted from metadata tags.
+ * @property genre The musical genre extracted from metadata tags.
+ * @property comment User or album comment extracted from metadata tags.
+ * @property trackPeak The track peak amplitude extracted from ReplayGain tags.
+ * @property albumPeak The album peak amplitude extracted from ReplayGain tags.
  */
 @Entity(
     tableName = "tracks",
@@ -54,5 +60,20 @@ data class TrackEntity(
     val trackGain: Float? = null,
 
     @ColumnInfo(name = "album_gain")
-    val albumGain: Float? = null
+    val albumGain: Float? = null,
+
+    @ColumnInfo(name = "date")
+    val date: String? = null,
+
+    @ColumnInfo(name = "genre")
+    val genre: String? = null,
+
+    @ColumnInfo(name = "comment")
+    val comment: String? = null,
+
+    @ColumnInfo(name = "track_peak")
+    val trackPeak: Float? = null,
+
+    @ColumnInfo(name = "album_peak")
+    val albumPeak: Float? = null
 )

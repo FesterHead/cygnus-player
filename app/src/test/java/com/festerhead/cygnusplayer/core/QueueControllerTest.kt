@@ -93,6 +93,80 @@ class QueueControllerTest {
         controller.clear()
         assertEquals("0/0", controller.getPositionString())
         assertNull(controller.getCurrentQueueId())
+        assertNull(controller.getCurrentTrackData())
+        assertNull(controller.getNextTrackData())
+    }
+
+    /**
+     * Verifies that [QueueController.moveNext] synchronously shifts the cached window
+     * so that the next track immediately becomes current without waiting for database queries.
+     */
+    @Test
+    fun testCachedWindowAndMoveNextShift() = runBlocking {
+        val mapping = longArrayOf(1L, 2L, 3L)
+        controller.initialize(mapping, 1L)
+
+        mockTrack(1L)
+        mockTrack(2L)
+        mockTrack(3L)
+
+        // Initial resolution
+        val window = controller.getWindowData()
+        assertEquals(1L, window.current?.queueId)
+        assertEquals(2L, window.next?.queueId)
+        assertEquals(1L, controller.getCurrentTrackData()?.queueId)
+        assertEquals(2L, controller.getNextTrackData()?.queueId)
+
+        // Shift forward synchronously
+        controller.moveNext()
+        assertEquals(2L, controller.getCurrentTrackData()?.queueId)
+        assertEquals(2L, controller.getCurrentTrackData()?.track?.trackId)
+        assertNull(controller.getNextTrackData())
+
+        // Calling getWindowData() resolves the new next (3L) while preserving current (2L)
+        val newWindow = controller.getWindowData()
+        assertEquals(1L, newWindow.prev?.queueId)
+        assertEquals(2L, newWindow.current?.queueId)
+        assertEquals(3L, newWindow.next?.queueId)
+        assertEquals(2L, controller.getCurrentTrackData()?.queueId)
+        assertEquals(3L, controller.getNextTrackData()?.queueId)
+    }
+
+    /**
+     * Verifies that [QueueController.updateTrackInCache] updates the in-memory track data,
+     * allowing newly extracted ReplayGain tags to be immediately accessible.
+     */
+    @Test
+    fun testUpdateTrackInCache() = runBlocking {
+        val mapping = longArrayOf(1L, 2L)
+        controller.initialize(mapping, 1L)
+
+        mockTrack(1L)
+        mockTrack(2L)
+
+        controller.getWindowData()
+        assertEquals(2L, controller.getNextTrackData()?.queueId)
+        assertNull(controller.getNextTrackData()?.track?.trackGain)
+
+        // Simulate background metadata extractor saving gain tags
+        val updatedTrack = TrackEntity(
+            trackId = 2L,
+            filePath = "path/2",
+            folderPath = "folder",
+            trackGain = -5.45f,
+            albumGain = -6.12f,
+        )
+        controller.updateTrackInCache(updatedTrack)
+
+        // Verify cache updated immediately
+        assertEquals(-5.45f, controller.getNextTrackData()?.track?.trackGain)
+        assertEquals(-6.12f, controller.getNextTrackData()?.track?.albumGain)
+
+        // After moveNext(), the updated track is synchronously the current track
+        controller.moveNext()
+        assertEquals(2L, controller.getCurrentTrackData()?.queueId)
+        assertEquals(-5.45f, controller.getCurrentTrackData()?.track?.trackGain)
+        assertEquals(-6.12f, controller.getCurrentTrackData()?.track?.albumGain)
     }
 
     private fun mockTrack(id: Long) {

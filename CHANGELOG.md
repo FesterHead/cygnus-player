@@ -14,6 +14,23 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-09-25
+
+### Added
+
+- Added a Song Details button on the Now Playing screen opening a modal dialog (`SongDetailsDialog`) that displays track metadata and ReplayGain statistics in a two-column table matching the Monokai Pro (Filter Spectrum) theme.
+- Displayed metadata fields include Artist Name, Track Title, Album Title, Date, Genre, Comment, Track Gain (in dB), Track Peak (6 decimal places), Album Gain (in dB), and Album Peak (6 decimal places), with automatic `<empty>` fallback for missing, blank, or placeholder tags.
+- Extended `ExtractedMetadata`, `Media3MetadataExtractor`, and `TrackEntity` with database schema bump to version 6 to extract and persist Date, Genre, Comment, Track Peak, and Album Peak.
+- Added unit tests in `SongDetailsTest` and `Media3MetadataExtractorMappingTest`, and Compose UI tests in `SongDetailsDialogTest` and `NowPlayingScreenTest`.
+- Comprehensive unit tests in `ShuffleEngineTest` covering album shuffle (`RANDOM_FOLDER_SEQUENTIAL`) history buffer behavior: 250-album library validation (`testFolderHistoryBufferWith250Albums`), 24-album boundary resilience (`testFolderHistoryBoundaryAtExactly24Folders`), and sub-24 album buffer-disabled logic (`testFolderHistoryDisabledWhenLessThan24Folders`).
+- Documented queue integrity requirements for `RANDOM_FOLDER_SEQUENTIAL` history handling in `AGENTS.md`.
+- Documented playlist storage in the music root, relative track path requirements, and the author's foobar2000 PC-to-phone synchronization workflow with directory and playlist examples in `README.md`.
+
+### Fixed
+
+- Fixed track loss bug in `ShuffleEngine` for `RANDOM_FOLDER_SEQUENTIAL` mode where previously played folders in the history buffer were dropped from the active queue instead of being deferred/appended after fresh folders, preserving full playlist contents across reshuffles while enforcing 24-album separation.
+- Corrected test assertion in `ShuffleEngineTest.testFolderHistoryBufferEnabled` to verify against `takeLast(24)` instead of `take(24)` to accurately match FIFO rolling buffer state.
+
 ## [1.0.7] - 2026-09-07
 
 ### Added

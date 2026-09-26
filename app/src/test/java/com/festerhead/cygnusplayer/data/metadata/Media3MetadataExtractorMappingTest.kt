@@ -6,6 +6,7 @@ import androidx.media3.common.Metadata
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.extractor.metadata.id3.ApicFrame
+import androidx.media3.extractor.metadata.id3.CommentFrame
 import androidx.media3.extractor.metadata.id3.TextInformationFrame
 import androidx.media3.exoplayer.source.TrackGroupArray
 import androidx.test.core.app.ApplicationProvider
@@ -46,8 +47,13 @@ class Media3MetadataExtractorMappingTest {
             TextInformationFrame("TIT2", null, listOf("Tom Sawyer")),
             TextInformationFrame("TPE1", null, listOf("Rush")),
             TextInformationFrame("TALB", null, listOf("Moving Pictures")),
+            TextInformationFrame("TDRC", null, listOf("1981")),
+            TextInformationFrame("TCON", null, listOf("Rock")),
+            CommentFrame("eng", "", "40th Anniversary Deluxe Edition"),
             TextInformationFrame("TXXX", "replaygain_track_gain", listOf("-9.03 dB")),
+            TextInformationFrame("TXXX", "replaygain_track_peak", listOf("0.898102")),
             TextInformationFrame("TXXX", "replaygain_album_gain", listOf("-7.45 dB")),
+            TextInformationFrame("TXXX", "replaygain_album_peak", listOf("1.000000")),
         )
 
         val result = testMapping(metadata)
@@ -55,8 +61,13 @@ class Media3MetadataExtractorMappingTest {
         assertEquals("Tom Sawyer", result.title)
         assertEquals("Rush", result.artist)
         assertEquals("Moving Pictures", result.album)
+        assertEquals("1981", result.date)
+        assertEquals("Rock", result.genre)
+        assertEquals("40th Anniversary Deluxe Edition", result.comment)
         assertEquals(-9.03f, result.trackGain)
+        assertEquals(0.898102f, result.trackPeak)
         assertEquals(-7.45f, result.albumGain)
+        assertEquals(1.000000f, result.albumPeak)
     }
 
     /**
@@ -110,6 +121,13 @@ class Media3MetadataExtractorMappingTest {
         assertEquals("<not found>", result.title)
         assertEquals("<not found>", result.artist)
         assertEquals("<not found>", result.album)
+        org.junit.Assert.assertNull(result.date)
+        org.junit.Assert.assertNull(result.genre)
+        org.junit.Assert.assertNull(result.comment)
+        org.junit.Assert.assertNull(result.trackGain)
+        org.junit.Assert.assertNull(result.albumGain)
+        org.junit.Assert.assertNull(result.trackPeak)
+        org.junit.Assert.assertNull(result.albumPeak)
     }
 
     /**
