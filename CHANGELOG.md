@@ -14,6 +14,8 @@ Release policy:
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-10-11
+
 ### Added
 
 - Added Track Duration to the Song Details dialog (`SongDetailsDialog`), positioned directly after Album Title in standard clock format (`mm:ss`, or `h:mm:ss` for tracks exceeding one hour).
