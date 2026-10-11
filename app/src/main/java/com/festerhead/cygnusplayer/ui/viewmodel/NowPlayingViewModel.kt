@@ -123,6 +123,12 @@ class NowPlayingViewModel(application: Application) : AndroidViewModel(applicati
                         override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                             updateMetadataFromController()
                         }
+
+                        override fun onPlaybackStateChanged(playbackState: Int) {
+                            if (playbackState == Player.STATE_READY) {
+                                updateMetadataFromController()
+                            }
+                        }
                     },
                 )
                 val isPlaying = controller?.isPlaying ?: false
@@ -149,10 +155,18 @@ class NowPlayingViewModel(application: Application) : AndroidViewModel(applicati
                 if ((controller != null) && controller.isPlaying) {
                     val currentPos = controller.currentPosition.coerceAtLeast(0L)
                     val dur = controller.duration.coerceAtLeast(0L)
+                    val validDur = if (dur == androidx.media3.common.C.TIME_UNSET) 0L else dur
                     _uiState.update {
+                        val currentDetails = it.songDetails
+                        val updatedDetails = if (currentDetails.trackDuration == SongDetails.EMPTY_VALUE && validDur > 0L) {
+                            currentDetails.copy(trackDuration = SongDetails.formatDuration(validDur))
+                        } else {
+                            currentDetails
+                        }
                         it.copy(
                             currentPositionMs = currentPos,
-                            durationMs = if (dur == androidx.media3.common.C.TIME_UNSET) 0L else dur,
+                            durationMs = validDur,
+                            songDetails = updatedDetails,
                         )
                     }
                 }
@@ -177,10 +191,11 @@ class NowPlayingViewModel(application: Application) : AndroidViewModel(applicati
         val app = getApplication<Application>() as CygnusApplication
         val positionStr = app.queueController.getPositionString()
         val currentTrack = app.queueController.getCurrentTrackData()?.track
-        val songDetails = SongDetails.fromTrack(currentTrack)
 
         val currentPos = controller.currentPosition.coerceAtLeast(0L)
         val dur = controller.duration.coerceAtLeast(0L)
+        val validDur = if (dur == androidx.media3.common.C.TIME_UNSET) 0L else dur
+        val songDetails = SongDetails.fromTrack(currentTrack, validDur)
 
         _uiState.update {
             it.copy(
@@ -189,7 +204,7 @@ class NowPlayingViewModel(application: Application) : AndroidViewModel(applicati
                 albumName = metadata?.albumTitle?.toString() ?: "No album",
                 position = positionStr,
                 currentPositionMs = currentPos,
-                durationMs = if (dur == androidx.media3.common.C.TIME_UNSET) 0L else dur,
+                durationMs = validDur,
                 artwork = metadata?.artworkData,
                 songDetails = songDetails,
             )

@@ -45,6 +45,7 @@ class NowPlayingScreenTest {
             artistName = "Rush",
             trackTitle = "Limelight",
             albumTitle = "Moving Pictures",
+            trackDuration = "04:20",
             date = "1981",
             genre = "Rock",
             comment = "40th Anniversary Deluxe Edition",
