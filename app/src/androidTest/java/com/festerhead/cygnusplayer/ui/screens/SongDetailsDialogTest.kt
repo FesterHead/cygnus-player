@@ -26,6 +26,7 @@ class SongDetailsDialogTest {
             artistName = "Rush",
             trackTitle = "Limelight",
             albumTitle = "Moving Pictures",
+            trackDuration = "04:20",
             date = "1981",
             genre = "Rock",
             comment = "40th Anniversary Deluxe Edition",
@@ -58,6 +59,9 @@ class SongDetailsDialogTest {
 
         composeTestRule.onNodeWithText("Album Title").assertIsDisplayed()
         composeTestRule.onNodeWithText("Moving Pictures").assertIsDisplayed()
+
+        composeTestRule.onNodeWithText("Track Duration").assertIsDisplayed()
+        composeTestRule.onNodeWithText("04:20").assertIsDisplayed()
 
         composeTestRule.onNodeWithText("Date").assertIsDisplayed()
         composeTestRule.onNodeWithText("1981").assertIsDisplayed()
@@ -98,6 +102,6 @@ class SongDetailsDialogTest {
 
         composeTestRule.onNodeWithText("Song Details").assertIsDisplayed()
         val emptyNodes = composeTestRule.onAllNodesWithText("<empty>").fetchSemanticsNodes()
-        assertTrue("Should have 10 <empty> fields", emptyNodes.size == 10)
+        assertTrue("Should have 11 <empty> fields", emptyNodes.size == 11)
     }
 }

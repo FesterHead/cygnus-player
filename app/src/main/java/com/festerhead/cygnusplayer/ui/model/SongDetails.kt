@@ -11,6 +11,7 @@ import java.util.Locale
  * @property artistName The name of the artist, or "<empty>".
  * @property trackTitle The title of the song, or "<empty>".
  * @property albumTitle The title of the album, or "<empty>".
+ * @property trackDuration The duration of the song formatted as clock time (e.g. "04:12" or "1:05:30"), or "<empty>".
  * @property date The recording or release date/year, or "<empty>".
  * @property genre The musical genre, or "<empty>".
  * @property comment User or release comment, or "<empty>".
@@ -23,6 +24,7 @@ data class SongDetails(
     val artistName: String = EMPTY_VALUE,
     val trackTitle: String = EMPTY_VALUE,
     val albumTitle: String = EMPTY_VALUE,
+    val trackDuration: String = EMPTY_VALUE,
     val date: String = EMPTY_VALUE,
     val genre: String = EMPTY_VALUE,
     val comment: String = EMPTY_VALUE,
@@ -41,6 +43,7 @@ data class SongDetails(
         "Artist Name" to artistName,
         "Track Title" to trackTitle,
         "Album Title" to albumTitle,
+        "Track Duration" to trackDuration,
         "Date" to date,
         "Genre" to genre,
         "Comment" to comment,
@@ -59,15 +62,17 @@ data class SongDetails(
          * fallbacks to missing, blank, or placeholder values.
          *
          * @param track The database [TrackEntity], or null if no track is playing.
+         * @param durationMs Playback duration in milliseconds, or 0 if unknown.
          * @return Formatted [SongDetails] ready for presentation.
          */
-        fun fromTrack(track: TrackEntity?): SongDetails {
+        fun fromTrack(track: TrackEntity?, durationMs: Long = 0L): SongDetails {
             if (track == null) return SongDetails()
 
             return SongDetails(
                 artistName = sanitizeText(track.artist),
                 trackTitle = sanitizeText(track.title),
                 albumTitle = sanitizeText(track.album),
+                trackDuration = formatDuration(durationMs),
                 date = sanitizeText(track.date),
                 genre = sanitizeText(track.genre),
                 comment = sanitizeText(track.comment),
@@ -76,6 +81,25 @@ data class SongDetails(
                 albumGain = formatGain(track.albumGain),
                 albumPeak = formatPeak(track.albumPeak),
             )
+        }
+
+        /**
+         * Formats duration in milliseconds to clock format "mm:ss" (or "h:mm:ss" if 1 hour or greater).
+         *
+         * @param durationMs The duration in milliseconds.
+         * @return Formatted clock time or "<empty>" if duration is non-positive.
+         */
+        fun formatDuration(durationMs: Long): String {
+            if (durationMs <= 0L) return EMPTY_VALUE
+            val totalSeconds = durationMs / 1000
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            val seconds = totalSeconds % 60
+            return if (hours > 0) {
+                String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
+            } else {
+                String.format(Locale.US, "%02d:%02d", minutes, seconds)
+            }
         }
 
         /**

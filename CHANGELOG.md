@@ -14,6 +14,13 @@ Release policy:
 
 ## [Unreleased]
 
+### Added
+
+- Added Track Duration to the Song Details dialog (`SongDetailsDialog`), positioned directly after Album Title in standard clock format (`mm:ss`, or `h:mm:ss` for tracks exceeding one hour).
+- Extended `SongDetails` model with `trackDuration` and `formatDuration()` helper supporting clock formatting and `<empty>` fallback for unready or non-positive durations.
+- Updated `NowPlayingViewModel` to pass playback duration to `SongDetails.fromTrack()` and ensure live duration synchronization upon playback ready transitions (`Player.STATE_READY`) and progress tracking.
+- Added unit tests in `SongDetailsTest` and Compose UI tests in `SongDetailsDialogTest` and `NowPlayingScreenTest`.
+
 ## [1.0.8] - 2026-09-25
 
 ### Added

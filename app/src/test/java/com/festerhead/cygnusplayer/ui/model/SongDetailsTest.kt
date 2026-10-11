@@ -16,6 +16,7 @@ class SongDetailsTest {
         assertEquals("<empty>", details.artistName)
         assertEquals("<empty>", details.trackTitle)
         assertEquals("<empty>", details.albumTitle)
+        assertEquals("<empty>", details.trackDuration)
         assertEquals("<empty>", details.date)
         assertEquals("<empty>", details.genre)
         assertEquals("<empty>", details.comment)
@@ -47,6 +48,7 @@ class SongDetailsTest {
         assertEquals("<empty>", details.artistName)
         assertEquals("<empty>", details.trackTitle)
         assertEquals("<empty>", details.albumTitle)
+        assertEquals("<empty>", details.trackDuration)
         assertEquals("<empty>", details.date)
         assertEquals("<empty>", details.genre)
         assertEquals("<empty>", details.comment)
@@ -73,11 +75,12 @@ class SongDetailsTest {
             albumPeak = 1.000000f,
         )
 
-        val details = SongDetails.fromTrack(track)
+        val details = SongDetails.fromTrack(track, durationMs = 260000L)
 
         assertEquals("Rush", details.artistName)
         assertEquals("Limelight", details.trackTitle)
         assertEquals("Moving Pictures", details.albumTitle)
+        assertEquals("04:20", details.trackDuration)
         assertEquals("1981", details.date)
         assertEquals("Rock", details.genre)
         assertEquals("40th Anniversary Deluxe Edition", details.comment)
@@ -87,17 +90,28 @@ class SongDetailsTest {
         assertEquals("1.000000", details.albumPeak)
 
         val displayList = details.toDisplayList()
-        assertEquals(10, displayList.size)
+        assertEquals(11, displayList.size)
         assertEquals("Artist Name" to "Rush", displayList[0])
         assertEquals("Track Title" to "Limelight", displayList[1])
         assertEquals("Album Title" to "Moving Pictures", displayList[2])
-        assertEquals("Date" to "1981", displayList[3])
-        assertEquals("Genre" to "Rock", displayList[4])
-        assertEquals("Comment" to "40th Anniversary Deluxe Edition", displayList[5])
-        assertEquals("Track Gain" to "-1.61 dB", displayList[6])
-        assertEquals("Track Peak" to "0.898102", displayList[7])
-        assertEquals("Album Gain" to "-1.71 dB", displayList[8])
-        assertEquals("Album Peak" to "1.000000", displayList[9])
+        assertEquals("Track Duration" to "04:20", displayList[3])
+        assertEquals("Date" to "1981", displayList[4])
+        assertEquals("Genre" to "Rock", displayList[5])
+        assertEquals("Comment" to "40th Anniversary Deluxe Edition", displayList[6])
+        assertEquals("Track Gain" to "-1.61 dB", displayList[7])
+        assertEquals("Track Peak" to "0.898102", displayList[8])
+        assertEquals("Album Gain" to "-1.71 dB", displayList[9])
+        assertEquals("Album Peak" to "1.000000", displayList[10])
+    }
+
+    @Test
+    fun testFormatDuration() {
+        assertEquals("<empty>", SongDetails.formatDuration(0L))
+        assertEquals("<empty>", SongDetails.formatDuration(-1000L))
+        assertEquals("00:45", SongDetails.formatDuration(45000L))
+        assertEquals("04:12", SongDetails.formatDuration(252000L))
+        assertEquals("1:05:30", SongDetails.formatDuration(3930000L))
+        assertEquals("10:00:00", SongDetails.formatDuration(36000000L))
     }
 
     @Test
